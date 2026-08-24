@@ -3,11 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>室況台 · 理科組設備檢查</title>
+    <title>V1.01 室況台 · 理科組設備檢查</title>
     <meta name="description" content="理科組實驗室與特別室設備檢查、報修與每月點名。" />
     <meta name="theme-color" content="#1E4A45" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231E4A45'/%3E%3Crect x='7' y='8' width='18' height='16' rx='2.5' fill='%23F3EFE6'/%3E%3Crect x='7' y='8' width='4' height='16' rx='1.5' fill='%23C45C26'/%3E%3C/svg%3E" />
-    <!-- 樣式內嵌於本檔，雙擊 index.html 亦可正確顯示；css/styles.css 仍保留供維護 -->
     <style>
 /* 系統字型優先，無需連線也能正確顯示 */
 
@@ -1060,28 +1059,1335 @@ table.board a:hover {
     </div>
 
     <script>
-      // 若 js 資料夾缺失，3 秒後顯示清楚錯誤（避免永遠「載入中」）
-      setTimeout(function () {
-        if (!window.CATALOG || !window.API) {
-          var app = document.getElementById("app");
-          if (app) {
-            app.innerHTML =
-              '<div class="alert-box" style="max-width:36rem;margin:2rem auto">' +
-              "<h2>無法載入程式</h2>" +
-              "<p style=\"margin-top:0.75rem;color:var(--fg)\">請確認你是<strong>解壓整個資料夾</strong>後再開 <code>index.html</code>，" +
-              "同一層要有 <code>js/</code> 與 <code>css/</code> 資料夾。</p>" +
-              "<p style=\"margin-top:0.5rem\">正確結構：</p>" +
-              "<pre style=\"background:var(--surface);padding:0.75rem;border-radius:8px;font-size:0.8rem;overflow:auto\">shi-kuang-tai/\n  index.html\n  css/\n  js/\n  google-apps-script/\n  README.md</pre>" +
-              "<p style=\"margin-top:0.75rem\">或用本機伺服器：在資料夾內執行 <code>python3 -m http.server 8080</code>，再打開 http://localhost:8080</p>" +
-              "</div>";
-          }
-        }
-      }, 2500);
+/**
+ * 室況台設定 — 已接上你的 Google Apps Script
+ */
+window.APP_CONFIG = {
+  /** 你的 Apps Script 網路應用程式網址 */
+  APPS_SCRIPT_URL:
+    "https://script.google.com/macros/s/AKfycbwYmwSI-rYSTR8f6wYOeDf_sFtNPp5P7P_6aabbP-hT33_NnQFK-aA0tzVMBXHaY9uM/exec",
+
+  /** 未更新超過多少日視為「待本月點名」 */
+  CHECK_INTERVAL_DAYS: 30,
+
+  APP_NAME: "室況台",
+  SCHOOL_YEAR: "2025–26",
+};
+
     </script>
-    <script src="js/config.js"></script>
-    <script src="js/catalog.js"></script>
-    <script src="js/seed.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/app.js"></script>
+    <script>
+/** 室況台 — 狀態、類別、室別常數（前端與 Google Sheet 共用語意） */
+window.CATALOG = {
+  STATUSES: [
+    { id: "reported", label: "發現問題", hint: "剛發現，尚未分派跟進" },
+    { id: "technician", label: "技術員跟進中", hint: "校內技術員檢查或維修" },
+    { id: "office", label: "校務處跟進中", hint: "已報校務處／外判維修" },
+    { id: "edb", label: "教育局跟進中", hint: "需教育局批核或外判工程" },
+    { id: "observing", label: "持續觀察", hint: "暫緩處理，定期覆查" },
+    { id: "on_hold", label: "擱置", hint: "暫不處理，保留紀錄" },
+    { id: "done", label: "完成", hint: "已修復或結案" },
+  ],
+  CATEGORIES: [
+    { id: "ac", label: "冷氣" },
+    { id: "window", label: "窗戶" },
+    { id: "board", label: "電子白板" },
+    { id: "plumbing", label: "水電／洗眼器" },
+    { id: "exhaust", label: "抽風／油煙" },
+    { id: "leak", label: "漏水" },
+    { id: "pest", label: "蟲害" },
+    { id: "other", label: "其他" },
+  ],
+  ROLES: [
+    { id: "teacher", label: "老師" },
+    { id: "technician", label: "技術員" },
+    { id: "office", label: "校務處" },
+    { id: "coordinator", label: "理科組" },
+  ],
+  WINGS: [
+    { id: "chem", label: "化學" },
+    { id: "phy", label: "物理" },
+    { id: "stem", label: "STEM" },
+    { id: "is", label: "綜合科學" },
+    { id: "bio", label: "生物" },
+    { id: "kitchen", label: "膳房" },
+  ],
+  /** 室別清單（亦會寫入 Google Sheet「Rooms」工作表，可在 Sheet 增刪） */
+  ROOMS: [
+    { id: "S608", code: "S608", name: "化學室", wing: "chem", floor: "6樓", sort_order: 10 },
+    { id: "S608a", code: "S608a", name: "化學預備室", wing: "chem", floor: "6樓", sort_order: 11 },
+    { id: "S608b", code: "S608b", name: "化學品貯存室", wing: "chem", floor: "6樓", sort_order: 12 },
+    { id: "S607", code: "S607", name: "物理室", wing: "phy", floor: "6樓", sort_order: 20 },
+    { id: "S607a", code: "S607a", name: "物理預備室", wing: "phy", floor: "6樓", sort_order: 21 },
+    { id: "S607b", code: "S607b", name: "放射性物質貯存室", wing: "phy", floor: "6樓", sort_order: 22 },
+    { id: "S604", code: "S604", name: "STEM Lab", wing: "stem", floor: "6樓", sort_order: 30 },
+    { id: "S604m", code: "S604m", name: "譽工房 Maker Space", wing: "stem", floor: "6樓", sort_order: 31 },
+    { id: "S511", code: "S511", name: "綜合科學實驗室", wing: "is", floor: "5樓", sort_order: 40 },
+    { id: "S511a", code: "S511a", name: "綜合科學預備室", wing: "is", floor: "5樓", sort_order: 41 },
+    { id: "S409", code: "S409", name: "生物室", wing: "bio", floor: "4樓", sort_order: 50 },
+    { id: "S409a", code: "S409a", name: "生物預備室", wing: "bio", floor: "4樓", sort_order: 51 },
+    { id: "S106", code: "S106", name: "譽膳房", wing: "kitchen", floor: "1樓", sort_order: 60 },
+    { id: "S106a", code: "S106a", name: "譽膳房貯物室", wing: "kitchen", floor: "1樓", sort_order: 61 },
+  ],
+};
+
+window.CATALOG.statusLabel = (id) =>
+  window.CATALOG.STATUSES.find((s) => s.id === id)?.label ?? id;
+window.CATALOG.categoryLabel = (id) =>
+  window.CATALOG.CATEGORIES.find((c) => c.id === id)?.label ?? id;
+window.CATALOG.roleLabel = (id) =>
+  window.CATALOG.ROLES.find((r) => r.id === id)?.label ?? id;
+window.CATALOG.wingLabel = (id) =>
+  window.CATALOG.WINGS.find((w) => w.id === id)?.label ?? id;
+
+    </script>
+    <script>
+/** 預設示範資料（對應 2025–26 理科組設備檢查紀錄）— 首次使用或 Sheet 空白時寫入 */
+window.SEED = {
+  issues: [
+    {
+      id: 1,
+      room_id: "S608",
+      title: "三部冷氣損壞，室溫極高",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2024-05-01",
+      last_checked_on: "2026-07-01",
+    },
+    {
+      id: 2,
+      room_id: "S608a",
+      title: "預備室冷氣損壞",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2025-06-15",
+      last_checked_on: "2026-07-01",
+    },
+    {
+      id: 3,
+      room_id: "S607",
+      title: "四部冷氣偏弱、兩部已壞（機號 2、3）",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2024-05-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 4,
+      room_id: "S604",
+      title: "三部冷氣損壞",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2024-07-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 5,
+      room_id: "S604",
+      title: "一隻窗損壞，待報價維修",
+      category: "window",
+      status: "office",
+      assignee: "CCL",
+      reported_on: "2024-07-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 6,
+      room_id: "S604",
+      title: "右方電子白板無法正常觸控",
+      category: "board",
+      status: "observing",
+      assignee: "WCW",
+      reported_on: "2025-09-01",
+      last_checked_on: "2026-08-01",
+    },
+    {
+      id: 7,
+      room_id: "S604m",
+      title: "三部冷氣損壞",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2024-07-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 8,
+      room_id: "S511",
+      title: "一部冷氣損壞（自 2018 年起）",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2018-09-01",
+      last_checked_on: "2026-07-01",
+    },
+    {
+      id: 9,
+      room_id: "S511",
+      title: "洗眼器水壓不足",
+      category: "plumbing",
+      status: "reported",
+      assignee: "豪哥",
+      reported_on: "2026-07-01",
+      last_checked_on: "2026-07-01",
+    },
+    {
+      id: 10,
+      room_id: "S511a",
+      title: "冷氣偏弱（引流罩安裝後已有改善）",
+      category: "ac",
+      status: "observing",
+      assignee: "豪哥",
+      reported_on: "2024-05-01",
+      last_checked_on: "2026-08-10",
+    },
+    {
+      id: 11,
+      room_id: "S106",
+      title: "八部冷氣中三部損壞（機號 1、5、6）",
+      category: "ac",
+      status: "office",
+      assignee: "Phoebe",
+      reported_on: "2024-07-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 12,
+      room_id: "S106",
+      title: "抽油煙機損壞",
+      category: "exhaust",
+      status: "done",
+      assignee: "MSW",
+      reported_on: "2024-07-01",
+      last_checked_on: "2025-09-15",
+    },
+    {
+      id: 13,
+      room_id: "S106",
+      title: "蟑螂出沒",
+      category: "pest",
+      status: "done",
+      assignee: "校務處",
+      reported_on: "2024-07-01",
+      last_checked_on: "2025-01-20",
+    },
+    {
+      id: 14,
+      room_id: "S607b",
+      title: "貯存室偶然漏水",
+      category: "leak",
+      status: "observing",
+      assignee: "CKW",
+      reported_on: "2024-05-01",
+      last_checked_on: "2026-07-10",
+    },
+    {
+      id: 15,
+      room_id: "S409a",
+      title: "預備室冷氣再損壞（疑電路板）",
+      category: "ac",
+      status: "done",
+      assignee: "豪哥",
+      reported_on: "2024-08-01",
+      last_checked_on: "2025-01-15",
+    },
+  ],
+  updates: [
+    { issue_id: 1, status: "reported", note: "兩部冷氣壞，室內極度燥熱。已報修。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-05-01" },
+    { issue_id: 1, status: "office", note: "五月曾經跟進，仍然有問題。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-05-20" },
+    { issue_id: 1, status: "office", note: "七月再報。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-07-10" },
+    { issue_id: 1, status: "office", note: "24-25 開學前：三部冷氣壞、三部正常。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 1, status: "office", note: "25-26 開學前：三部冷氣壞、三部正常。繼續報。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 1, status: "office", note: "25-26 學期尾仍未修復。繼續報校務處。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-01" },
+    { issue_id: 2, status: "reported", note: "預備室冷氣損壞。已報 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-06-15" },
+    { issue_id: 2, status: "office", note: "25-26 開學前冷氣仍壞。再報 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 2, status: "office", note: "學期尾仍未修復。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-01" },
+    { issue_id: 3, status: "reported", note: "五部冷氣弱、一部已壞。已檢查，待維修。", author_name: "CKW", author_role: "technician", happened_on: "2024-05-01" },
+    { issue_id: 3, status: "office", note: "七月 CKW 報告給 Phoebe。", author_name: "CKW", author_role: "technician", happened_on: "2024-07-15" },
+    { issue_id: 3, status: "office", note: "九月再報告。報 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-05" },
+    { issue_id: 3, status: "office", note: "24-25 學期尾：五部較弱、一部已壞。繼續報。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 3, status: "office", note: "25-26 開學前：四部較弱、兩部已壞（機號 2、3）。繼續報 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 3, status: "office", note: "25-26 學期尾：四部較弱、兩部已壞（機號 2、3）。繼續報 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-10" },
+    { issue_id: 4, status: "reported", note: "一部冷氣壞，豪哥已檢查。七月已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2024-07-01" },
+    { issue_id: 4, status: "office", note: "冷氣因學校與維修公司之間出現問題，有待處理。CCL 跟進。", author_name: "CCL", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 4, status: "office", note: "學期尾未有改善。", author_name: "CCL", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 4, status: "office", note: "25-26 開學前：兩部冷氣壞，豪哥已檢查並報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2025-09-01" },
+    { issue_id: 4, status: "office", note: "學期尾：三部冷氣壞。豪哥已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2026-07-10" },
+    { issue_id: 5, status: "reported", note: "一隻窗損壞。七月已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2024-07-01" },
+    { issue_id: 5, status: "office", note: "窗已檢查，等待報價。CCL 跟進。", author_name: "CCL", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 5, status: "office", note: "學期尾未有改善。", author_name: "CCL", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 5, status: "office", note: "25-26 開學前窗仍損壞。豪哥已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2025-09-01" },
+    { issue_id: 5, status: "office", note: "學期尾窗仍損壞。豪哥已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2026-07-10" },
+    { issue_id: 6, status: "reported", note: "右方電子白板無法正常觸控。已聯絡 HKT，再轉 Fujitsu（Stephen Chow）。", author_name: "WCW", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 6, status: "technician", note: "Fujitsu 工程師已評估：左右要預最少 2cm，上面要拆頂蓋才可拆機。工程費約 $2,500。Trade-in：IW862 Pro 翻新 $13,800；IW862 DX 全新 $19,800。", author_name: "WCW", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 6, status: "observing", note: "未有合適機型，持續每年獲取機型資訊。", author_name: "WCW", author_role: "coordinator", happened_on: "2026-07-01" },
+    { issue_id: 6, status: "observing", note: "本月覆查：暫無新機型可換，維持觀察。", author_name: "WCW", author_role: "coordinator", happened_on: "2026-08-01" },
+    { issue_id: 7, status: "reported", note: "一部冷氣壞、一隻窗損壞。七月已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2024-07-01" },
+    { issue_id: 7, status: "office", note: "窗已檢查待報價；冷氣因校方與維修公司問題有待處理。CCL 跟進。", author_name: "CCL", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 7, status: "office", note: "學期尾未有改善。", author_name: "CCL", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 7, status: "office", note: "學期尾：三部冷氣壞。已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2026-07-10" },
+    { issue_id: 8, status: "reported", note: "一部冷氣損壞（自 2018 年起）。多次上報 Phoebe，未獲批維修。", author_name: "理科組", author_role: "coordinator", happened_on: "2018-09-01" },
+    { issue_id: 8, status: "office", note: "24-25 開學前再報。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 8, status: "office", note: "24-25 學期尾再報。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 8, status: "office", note: "25-26 開學前再報。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-09-01" },
+    { issue_id: 8, status: "office", note: "25-26 學期尾仍未修復。再報，稍後通知豪哥。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-01" },
+    { issue_id: 9, status: "reported", note: "洗眼器水壓不足。再報，稍後通知豪哥檢查。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-01" },
+    { issue_id: 10, status: "reported", note: "預備室冷氣弱。已報。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-05-01" },
+    { issue_id: 10, status: "office", note: "多次再報，情況未明顯改善。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 10, status: "technician", note: "豪哥安裝引流罩，並解除抽風和冷氣連接。", author_name: "豪哥", author_role: "technician", happened_on: "2025-09-01" },
+    { issue_id: 10, status: "observing", note: "冷氣仍偏弱，但有所改善。改為持續觀察。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-08-10" },
+    { issue_id: 11, status: "reported", note: "一部冷氣損壞（機號 1），一部抽油煙機損壞。七月已報。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-07-01" },
+    { issue_id: 11, status: "office", note: "算學校維修，待開會跟進。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 11, status: "edb", note: "下學年報教育局。已問 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 11, status: "office", note: "冷氣八部壞兩部（機號 1、5）。豪哥檢查後已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2025-09-01" },
+    { issue_id: 11, status: "office", note: "冷氣八部壞三部（機號 1、5、6）。豪哥檢查後已報給 Phoebe。", author_name: "豪哥", author_role: "technician", happened_on: "2026-07-10" },
+    { issue_id: 12, status: "reported", note: "抽油煙機損壞。七月已報。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-07-01" },
+    { issue_id: 12, status: "office", note: "下學年報教育局。已問 Phoebe。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-07-01" },
+    { issue_id: 12, status: "done", note: "油煙機已更換。MSW 已跟進。", author_name: "MSW", author_role: "office", happened_on: "2025-09-15" },
+    { issue_id: 13, status: "reported", note: "蟑螂出沒，需注意。七月尾噴 Biokill。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-07-25" },
+    { issue_id: 13, status: "office", note: "開學前仍有蟑螂出沒。算學校維修，待開會跟進。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 13, status: "done", note: "貯物室及膳房近期未再見蟑螂。結案，若再出現請重新開單。", author_name: "理科組", author_role: "coordinator", happened_on: "2025-01-20" },
+    { issue_id: 14, status: "reported", note: "偶然漏水。暫時解決，待長期觀察。", author_name: "CKW", author_role: "technician", happened_on: "2024-05-01" },
+    { issue_id: 14, status: "observing", note: "24-25 開學前未見異常。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-09-01" },
+    { issue_id: 14, status: "observing", note: "其後多次檢查均未見異常。維持觀察。", author_name: "理科組", author_role: "coordinator", happened_on: "2026-07-10" },
+    { issue_id: 15, status: "reported", note: "冷氣已更換後再損壞。", author_name: "理科組", author_role: "coordinator", happened_on: "2024-08-01" },
+    { issue_id: 15, status: "technician", note: "唯一的冷氣再損壞。已通知 Phoebe，豪哥已檢查，據知可能壞電路板。", author_name: "豪哥", author_role: "technician", happened_on: "2024-09-01" },
+    { issue_id: 15, status: "done", note: "已修復，狀態良好。", author_name: "豪哥", author_role: "technician", happened_on: "2025-01-15" },
+  ],
+};
+
+    </script>
+    <script>
+/**
+ * 資料層：優先呼叫 Google Apps Script；失敗時 bootstrap 可退回本機示範
+ */
+(function () {
+  const STORAGE_KEY = "shi-kuang-tai-v1";
+
+  function todayISO() {
+    const d = new Date();
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function addDays(iso, days) {
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0"),
+    ].join("-");
+  }
+
+  function isDue(issue) {
+    if (issue.status === "done") return false;
+    const next = addDays(issue.last_checked_on, window.APP_CONFIG.CHECK_INTERVAL_DAYS);
+    return next <= todayISO();
+  }
+
+  function enrichIssue(issue, rooms) {
+    const room = rooms.find((r) => r.id === issue.room_id) || {};
+    return {
+      ...issue,
+      room_code: room.code || issue.room_id,
+      room_name: room.name || "",
+      room_wing: room.wing || "",
+      room_floor: room.floor || "",
+    };
+  }
+
+  function loadLocal() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        return JSON.parse(raw);
+      } catch (_) {}
+    }
+    const data = {
+      rooms: window.CATALOG.ROOMS.map((r) => ({ ...r })),
+      issues: window.SEED.issues.map((i) => ({ ...i })),
+      updates: window.SEED.updates.map((u, idx) => ({ id: idx + 1, ...u })),
+      nextIssueId: Math.max(0, ...window.SEED.issues.map((i) => i.id)) + 1,
+      nextUpdateId: window.SEED.updates.length + 1,
+    };
+    saveLocal(data);
+    return data;
+  }
+
+  function saveLocal(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  async function localCall(action, payload = {}) {
+    const db = loadLocal();
+    switch (action) {
+      case "bootstrap": {
+        return {
+          rooms: db.rooms,
+          issues: db.issues.map((i) => enrichIssue(i, db.rooms)),
+          updates: db.updates,
+          mode: "local",
+        };
+      }
+      case "createIssue": {
+        const id = db.nextIssueId++;
+        const issue = {
+          id,
+          room_id: payload.roomId,
+          title: payload.title,
+          category: payload.category,
+          status: payload.status,
+          assignee: payload.assignee || "",
+          reported_on: payload.reportedOn,
+          last_checked_on: payload.reportedOn,
+        };
+        db.issues.push(issue);
+        db.updates.push({
+          id: db.nextUpdateId++,
+          issue_id: id,
+          status: payload.status,
+          note: payload.note,
+          author_name: payload.authorName,
+          author_role: payload.authorRole,
+          happened_on: payload.reportedOn,
+        });
+        saveLocal(db);
+        return { id };
+      }
+      case "addUpdate": {
+        const issue = db.issues.find((i) => i.id === Number(payload.issueId));
+        if (!issue) throw new Error("找不到此問題");
+        db.updates.push({
+          id: db.nextUpdateId++,
+          issue_id: issue.id,
+          status: payload.status,
+          note: payload.note,
+          author_name: payload.authorName,
+          author_role: payload.authorRole,
+          happened_on: payload.happenedOn,
+        });
+        issue.status = payload.status;
+        issue.last_checked_on = payload.happenedOn;
+        if (payload.assignee !== undefined) issue.assignee = payload.assignee;
+        saveLocal(db);
+        return { ok: true };
+      }
+      case "deleteIssue": {
+        const id = Number(payload.issueId);
+        db.issues = db.issues.filter((i) => i.id !== id);
+        db.updates = db.updates.filter((u) => u.issue_id !== id);
+        saveLocal(db);
+        return { ok: true };
+      }
+      default:
+        throw new Error("未知操作：" + action);
+    }
+  }
+
+  async function remoteCall(action, payload = {}) {
+    const url = (window.APP_CONFIG.APPS_SCRIPT_URL || "").trim();
+    if (!url) throw new Error("未設定 APPS_SCRIPT_URL");
+
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action, ...payload }),
+        redirect: "follow",
+      });
+    } catch (err) {
+      throw new Error(
+        "無法連線 Google Sheet。請用 localhost 或 GitHub Pages 開啟（不要雙擊 file://），並確認 Apps Script 部署為「任何人」。" +
+          (err.message ? " (" + err.message + ")" : "")
+      );
+    }
+
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (_) {
+      const hint =
+        /sign in|accounts\.google|許可|授權/i.test(text)
+          ? "部署存取權請選「任何人」（Anyone）。"
+          : "請重新部署：管理部署作業 → 編輯 → 新版本；執行身分「我」、存取權「任何人」。也可在瀏覽器開 API 網址加 ?action=bootstrap 測試。";
+      throw new Error("Google 沒有回傳 JSON（HTTP " + res.status + "）。" + hint);
+    }
+    if (json.error) throw new Error(json.error);
+    return json;
+  }
+
+  function usingRemote() {
+    return Boolean(window.APP_CONFIG.APPS_SCRIPT_URL && window.APP_CONFIG.APPS_SCRIPT_URL.trim());
+  }
+
+  async function api(action, payload) {
+    if (usingRemote()) {
+      try {
+        return await remoteCall(action, payload);
+      } catch (err) {
+        if (action === "bootstrap") {
+          console.warn("[室況台] 連線失敗，改用本機示範：", err);
+          const local = await localCall("bootstrap");
+          local.mode = "local-fallback";
+          local._remoteError = String(err.message || err);
+          return local;
+        }
+        throw err;
+      }
+    }
+    return localCall(action, payload);
+  }
+
+  window.API = {
+    usingRemote,
+    todayISO,
+    addDays,
+    isDue,
+    bootstrap: () => api("bootstrap"),
+    createIssue: (payload) => api("createIssue", payload),
+    addUpdate: (payload) => api("addUpdate", payload),
+    deleteIssue: (issueId) => api("deleteIssue", { issueId }),
+    resetLocal: () => localStorage.removeItem(STORAGE_KEY),
+  };
+})();
+
+    </script>
+    <script>
+(function () {
+  const state = {
+    rooms: [],
+    issues: [],
+    updates: [],
+    mode: "local",
+    view: "home",
+    params: {},
+    identity: loadIdentity(),
+  };
+
+  function loadIdentity() {
+    try {
+      return JSON.parse(localStorage.getItem("lab-desk-identity") || "null") || {
+        name: "",
+        role: "teacher",
+      };
+    } catch {
+      return { name: "", role: "teacher" };
+    }
+  }
+
+  function saveIdentity(name, role) {
+    state.identity = { name: name.trim(), role };
+    localStorage.setItem("lab-desk-identity", JSON.stringify(state.identity));
+    renderHeader();
+  }
+
+  function toast(msg) {
+    const root = document.getElementById("toast-root");
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = msg;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const [y, m, d] = iso.slice(0, 10).split("-");
+    return `${y}年${Number(m)}月${Number(d)}日`;
+  }
+
+  function formatDateShort(iso) {
+    if (!iso) return "—";
+    const [, m, d] = iso.slice(0, 10).split("-");
+    return `${Number(m)}/${Number(d)}`;
+  }
+
+  function nextCheck(iso) {
+    return API.addDays(iso, window.APP_CONFIG.CHECK_INTERVAL_DAYS);
+  }
+
+  function daysBetween(from, to) {
+    const a = Date.parse(from + "T00:00:00");
+    const b = Date.parse(to + "T00:00:00");
+    return Math.round((b - a) / 86400000);
+  }
+
+  function badge(status) {
+    return `<span class="badge badge-${status}">${CATALOG.statusLabel(status)}</span>`;
+  }
+
+  function barClass(status, due) {
+    if (due) return "bar-warn";
+    return "bar-" + (status || "reported");
+  }
+
+  function requireIdentity() {
+    if (!state.identity.name) {
+      openIdentityModal();
+      toast("請先填寫你的名稱");
+      return false;
+    }
+    return true;
+  }
+
+  /* ---------- routing ---------- */
+  function parseHash() {
+    const h = (location.hash || "#/").replace(/^#/, "") || "/";
+    const parts = h.split("/").filter(Boolean);
+    if (parts[0] === "rooms" && parts[1]) return { view: "room", params: { roomId: parts[1] } };
+    if (parts[0] === "issues" && parts[1]) return { view: "issue", params: { issueId: Number(parts[1]) } };
+    if (parts[0] === "board") return { view: "board", params: {} };
+    if (parts[0] === "check-in") return { view: "checkin", params: {} };
+    if (parts[0] === "report") return { view: "report", params: { room: parts[1] || "" } };
+    return { view: "home", params: {} };
+  }
+
+  function navigate(path) {
+    location.hash = path;
+  }
+
+  window.addEventListener("hashchange", () => {
+    const r = parseHash();
+    state.view = r.view;
+    state.params = r.params;
+    render();
+  });
+
+  /* ---------- data ---------- */
+  async function refresh() {
+    const data = await API.bootstrap();
+    state.rooms = data.rooms || [];
+    state.issues = data.issues || [];
+    state.updates = data.updates || [];
+    state.mode = data.mode || (API.usingRemote() ? "remote" : "local");
+  }
+
+  function openIssues() {
+    return state.issues.filter((i) => i.status !== "done");
+  }
+
+  function dueIssues() {
+    return openIssues().filter(API.isDue).sort((a, b) => a.last_checked_on.localeCompare(b.last_checked_on));
+  }
+
+  /* ---------- header ---------- */
+  function renderHeader() {
+    const id = state.identity;
+    const chip = document.getElementById("identity-chip");
+    const mobileId = document.getElementById("mobile-identity");
+    const label = id.name
+      ? `<strong>${escapeHtml(id.name)}</strong><span>${CATALOG.roleLabel(id.role)}</span>`
+      : `<span style="color:var(--muted)">設定身分</span>`;
+    if (chip) chip.innerHTML = label;
+    if (mobileId) mobileId.textContent = id.name || "身分";
+
+    document.querySelectorAll("[data-nav]").forEach((a) => {
+      const v = a.getAttribute("data-nav");
+      a.classList.toggle("active", state.view === v || (v === "home" && state.view === "home"));
+    });
+  }
+
+  /* ---------- views ---------- */
+  function renderHome() {
+    const open = openIssues();
+    const due = dueIssues();
+    const doneMonth = state.issues.filter((i) => {
+      if (i.status !== "done") return false;
+      const now = API.todayISO();
+      return i.last_checked_on.slice(0, 7) === now.slice(0, 7);
+    }).length;
+
+    const byWing = {};
+    state.rooms
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .forEach((r) => {
+        (byWing[r.wing] ??= []).push(r);
+      });
+
+    const dueList = due
+      .slice(0, 4)
+      .map(
+        (i) => `
+      <a href="#/issues/${i.id}" class="issue-card" style="margin-top:0.5rem;background:color-mix(in srgb,var(--surface) 70%,transparent)">
+        <div class="body" style="padding-left:0">
+          <div class="flex-between">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:0.875rem;font-weight:500">${escapeHtml(i.room_code)} ${escapeHtml(i.room_name)} · ${escapeHtml(i.title)}</div>
+              <div class="meta">上次更新 ${formatDate(i.last_checked_on)} · 應於 ${formatDate(nextCheck(i.last_checked_on))} 前點名</div>
+            </div>
+            ${badge(i.status)}
+          </div>
+        </div>
+      </a>`,
+      )
+      .join("");
+
+    let roomsHtml = "";
+    Object.entries(byWing).forEach(([wing, rooms]) => {
+      roomsHtml += `<h2 class="section-title">${CATALOG.wingLabel(wing)}</h2><div class="room-grid">`;
+      rooms.forEach((room) => {
+        const roomOpen = open.filter((i) => i.room_id === room.id);
+        const roomDue = roomOpen.filter(API.isDue);
+        const latest = roomOpen.sort((a, b) => a.last_checked_on.localeCompare(b.last_checked_on))[0];
+        const healthy = roomOpen.length === 0;
+        roomsHtml += `
+          <a class="room-card" href="#/rooms/${room.id}">
+            <span class="bar ${healthy ? "bar-done" : roomDue.length ? "bar-warn" : barClass(latest?.status)}"></span>
+            <div class="body">
+              <div class="flex-between">
+                <span class="meta" style="font-family:ui-monospace,monospace">${escapeHtml(room.code)} · ${escapeHtml(room.floor)}</span>
+                <span class="meta" style="font-weight:500;color:${healthy ? "var(--done)" : roomDue.length ? "var(--warn)" : "var(--muted)"}">
+                  ${healthy ? "良好" : roomDue.length ? roomDue.length + " 項待點名" : roomOpen.length + " 項進行中"}
+                </span>
+              </div>
+              <h3 style="margin:0.25rem 0 0;font-size:1.25rem">${escapeHtml(room.name)}</h3>
+              <p class="muted" style="margin:0.5rem 0 0;font-size:0.875rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                ${healthy ? "目前沒有未完成項目。" : escapeHtml(latest?.title || "")}
+              </p>
+              ${!healthy && latest ? `<div class="mt-3">${badge(latest.status)}</div>` : ""}
+            </div>
+          </a>`;
+      });
+      roomsHtml += `</div>`;
+    });
+
+    return `
+      ${modeBanner()}
+      <header class="page-header">
+        <p class="eyebrow">${window.APP_CONFIG.SCHOOL_YEAR} · 理科組</p>
+        <h1>各室現況</h1>
+        <p>老師發現問題即時開單，技術員與校務處在同一時間線跟進。未完成項目每 ${window.APP_CONFIG.CHECK_INTERVAL_DAYS} 日須點名一次，即使維持原狀。</p>
+      </header>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="label">進行中</div><div class="value">${open.length}</div></div>
+        <div class="stat-card ${due.length ? "warn" : ""}"><div class="label">待本月點名</div><div class="value">${due.length}</div></div>
+        <div class="stat-card"><div class="label">本月完成</div><div class="value">${doneMonth}</div></div>
+        <div class="stat-card"><div class="label">室數</div><div class="value">${state.rooms.length}</div></div>
+      </div>
+      ${
+        due.length
+          ? `<section class="alert-box mt-4">
+              <div class="flex-between">
+                <div>
+                  <h2>${due.length} 項已超過 ${window.APP_CONFIG.CHECK_INTERVAL_DAYS} 日未更新</h2>
+                  <p>請打電話、問校務處或現場覆查後寫一句——維持原狀也要記。</p>
+                </div>
+                <a class="btn btn-secondary btn-sm" href="#/check-in">去點名</a>
+              </div>
+              ${dueList}
+            </section>`
+          : ""
+      }
+      ${roomsHtml}
+      <div class="legend mt-4">${CATALOG.STATUSES.map((s) => badge(s.id)).join("")}</div>
+    `;
+  }
+
+  function renderRoom() {
+    const room = state.rooms.find((r) => r.id === state.params.roomId);
+    if (!room) return `<p class="muted">找不到此室。</p>`;
+    const issues = state.issues
+      .filter((i) => i.room_id === room.id)
+      .sort((a, b) => (a.status === "done") - (b.status === "done") || a.last_checked_on.localeCompare(b.last_checked_on));
+    const open = issues.filter((i) => i.status !== "done");
+    const closed = issues.filter((i) => i.status === "done");
+
+    function list(items) {
+      if (!items.length) return `<p class="muted">沒有進行中的問題。</p>`;
+      return items
+        .map((i) => {
+          const due = API.isDue(i);
+          const uc = state.updates.filter((u) => u.issue_id === i.id).length;
+          return `
+          <a class="issue-card" href="#/issues/${i.id}">
+            <span class="bar ${barClass(i.status, due)}"></span>
+            <div class="body">
+              <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+                ${badge(i.status)}
+                <span class="meta">${CATALOG.categoryLabel(i.category)}</span>
+                ${due ? `<span class="meta" style="color:var(--warn);font-weight:500">待點名</span>` : ""}
+              </div>
+              <h3 style="margin:0.5rem 0 0;font-size:1rem;font-family:var(--font);font-weight:500">${escapeHtml(i.title)}</h3>
+              <p class="meta mt-2">發現於 ${formatDate(i.reported_on)}${i.assignee ? " · 負責人 " + escapeHtml(i.assignee) : ""} · 上次更新 ${formatDate(i.last_checked_on)}${
+                i.status !== "done" ? " · 下次點名 " + formatDate(nextCheck(i.last_checked_on)) : ""
+              } · ${uc} 則紀錄</p>
+            </div>
+          </a>`;
+        })
+        .join("");
+    }
+
+    return `
+      <a class="link-back" href="#/">← 返回總覽</a>
+      <div class="flex-between page-header" style="margin-bottom:1.5rem">
+        <div>
+          <p class="meta" style="font-family:ui-monospace,monospace">${escapeHtml(room.code)} · ${escapeHtml(room.floor)} · ${CATALOG.wingLabel(room.wing)}</p>
+          <h1 style="margin:0.25rem 0 0">${escapeHtml(room.name)}</h1>
+          <p class="muted" style="margin:0.5rem 0 0">${open.length === 0 ? "目前沒有未完成項目。" : open.length + " 項進行中"}</p>
+        </div>
+        <a class="btn btn-primary" href="#/report/${room.id}">報告此室問題</a>
+      </div>
+      <div class="stack gap-4">${list(open)}</div>
+      ${closed.length ? `<h2 class="section-title muted" style="font-family:var(--font);font-size:0.875rem;font-weight:500">已完成</h2><div class="stack gap-4">${list(closed)}</div>` : ""}
+    `;
+  }
+
+  function renderIssue() {
+    const id = state.params.issueId;
+    const issue = state.issues.find((i) => i.id === id);
+    if (!issue) return `<p class="muted">找不到此紀錄。</p>`;
+    const updates = state.updates
+      .filter((u) => u.issue_id === id)
+      .sort((a, b) => a.happened_on.localeCompare(b.happened_on) || (a.id || 0) - (b.id || 0));
+    const due = API.isDue(issue);
+    const age = daysBetween(issue.reported_on, API.todayISO());
+
+    const timeline = updates
+      .map(
+        (u, idx) => `
+      <li>
+        <span class="dot ${idx === updates.length - 1 ? "latest" : ""}"></span>
+        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:baseline">
+          <time class="meta" style="font-weight:500">${formatDate(u.happened_on)}</time>
+          ${badge(u.status)}
+          <span class="meta">${escapeHtml(u.author_name)} · ${CATALOG.roleLabel(u.author_role)}</span>
+        </div>
+        <p style="margin:0.5rem 0 0;font-size:0.875rem">${escapeHtml(u.note)}</p>
+      </li>`,
+      )
+      .join("");
+
+    return `
+      <a class="link-back" href="#/rooms/${issue.room_id}">← ${escapeHtml(issue.room_code)} ${escapeHtml(issue.room_name)}</a>
+      <div class="detail-panel">
+        <span class="bar ${barClass(issue.status, due)}"></span>
+        <div class="inner">
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+            ${badge(issue.status)}
+            <span class="meta">${CATALOG.categoryLabel(issue.category)}</span>
+            ${due ? `<span class="badge" style="background:var(--warn-bg);color:var(--warn)">待本月點名</span>` : ""}
+          </div>
+          <h1 style="margin:0.75rem 0 0;font-size:clamp(1.35rem,3vw,1.75rem)">${escapeHtml(issue.title)}</h1>
+          <dl class="meta-grid">
+            <div><dt>發現日期</dt><dd>${formatDate(issue.reported_on)}</dd></div>
+            <div><dt>已持續</dt><dd>${age >= 365 ? Math.floor(age / 365) + " 年" : age + " 日"}</dd></div>
+            <div><dt>負責人</dt><dd>${escapeHtml(issue.assignee || "未指定")}</dd></div>
+            <div><dt>下次點名</dt><dd>${issue.status === "done" ? "已結案" : formatDate(nextCheck(issue.last_checked_on))}</dd></div>
+          </dl>
+        </div>
+      </div>
+      ${
+        issue.status !== "done"
+          ? `<section class="form-card mt-4">
+              <h2 style="margin:0;font-size:1.125rem">寫入跟進</h2>
+              <p class="muted" style="margin:0.35rem 0 1rem">技術員、校務處或理科組都可以更新。維持原狀也請點名。</p>
+              ${followUpFormHtml(issue, false)}
+            </section>`
+          : ""
+      }
+      <section class="mt-4">
+        <h2 class="section-title" style="margin-top:0">時間線</h2>
+        <ol class="timeline">${timeline || "<li class='muted'>尚無紀錄</li>"}</ol>
+      </section>
+      <div class="mt-4">
+        <button type="button" class="delete-btn" data-delete-issue="${issue.id}">刪除此問題（錯誤輸入時使用）</button>
+      </div>
+    `;
+  }
+
+  function followUpFormHtml(issue, compact) {
+    const statusOpts = CATALOG.STATUSES.map(
+      (s) => `<option value="${s.id}" ${s.id === issue.status ? "selected" : ""}>${s.label}</option>`,
+    ).join("");
+    return `
+      <form class="stack gap-4" data-follow-up="${issue.id}" data-compact="${compact ? "1" : "0"}">
+        <div class="form-grid ${compact ? "" : "form-grid-2"}">
+          <div class="field">
+            <label>狀態</label>
+            <select name="status">${statusOpts}</select>
+          </div>
+          ${
+            compact
+              ? ""
+              : `<div class="field">
+                  <label>跟進日期</label>
+                  <input type="date" name="happenedOn" value="${API.todayISO()}" required />
+                </div>`
+          }
+        </div>
+        ${
+          compact
+            ? ""
+            : `<div class="field">
+                <label>負責人</label>
+                <input name="assignee" value="${escapeAttr(issue.assignee || "")}" placeholder="跟進同事" />
+              </div>`
+        }
+        <div class="field">
+          <label>${compact ? "本月情況" : "跟進說明"}</label>
+          <textarea name="note" ${compact ? 'class="" style="min-height:5rem"' : ""} placeholder="${
+            compact
+              ? "即使維持原狀，也請寫一句。例如：仍未修復，繼續報 Phoebe。"
+              : "寫下檢查、報修、報價或完工情況。"
+          }"></textarea>
+        </div>
+        <div class="actions-row">
+          <button type="submit" class="btn btn-primary">${compact ? "完成本月點名" : "加入跟進"}</button>
+          <button type="button" class="btn btn-secondary" data-keep-status="${issue.id}">維持原狀</button>
+        </div>
+      </form>`;
+  }
+
+  function renderCheckin() {
+    const due = dueIssues();
+    if (!due.length) {
+      return `
+        ${modeBanner()}
+        <header class="page-header">
+          <h1>本月點名</h1>
+          <p>未完成的問題每 ${window.APP_CONFIG.CHECK_INTERVAL_DAYS} 日必須更新一次。結果即使是「維持原狀」，也請按一下。</p>
+        </header>
+        <div class="empty-ok">
+          <h2>本月沒有逾期項目</h2>
+          <p>所有進行中的問題都在期限內更新過。</p>
+        </div>`;
+    }
+    return `
+      ${modeBanner()}
+      <header class="page-header">
+        <h1>本月點名</h1>
+        <p>未完成的問題每 ${window.APP_CONFIG.CHECK_INTERVAL_DAYS} 日必須更新一次。打電話問校務處、問技術員、或自己去看都可以。</p>
+      </header>
+      <div class="stack gap-4">
+        ${due
+          .map(
+            (i) => `
+          <div class="form-card">
+            <div class="flex-between">
+              <div>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+                  ${badge(i.status)}
+                  <a class="meta" href="#/rooms/${i.room_id}">${escapeHtml(i.room_code)} ${escapeHtml(i.room_name)}</a>
+                </div>
+                <h2 style="margin:0.5rem 0 0;font-size:1rem;font-family:var(--font);font-weight:500">
+                  <a href="#/issues/${i.id}">${escapeHtml(i.title)}</a>
+                </h2>
+                <p class="meta mt-2">上次更新 ${formatDate(i.last_checked_on)} · 應於 ${formatDate(nextCheck(i.last_checked_on))} 前點名${
+                  i.assignee ? " · " + escapeHtml(i.assignee) : ""
+                }</p>
+              </div>
+            </div>
+            <div class="mt-4" style="border-top:1px solid var(--border);padding-top:1rem">
+              ${followUpFormHtml(i, true)}
+            </div>
+          </div>`,
+          )
+          .join("")}
+      </div>`;
+  }
+
+  function renderBoard() {
+    const grouped = state.rooms
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((room) => ({
+        room,
+        issues: state.issues.filter((i) => i.room_id === room.id),
+      }));
+
+    const mobile = grouped
+      .map(({ room, issues }) => {
+        if (!issues.length) {
+          return `<section class="mobile-room-block">
+            <a href="#/rooms/${room.id}"><span class="meta" style="font-family:ui-monospace,monospace">${escapeHtml(room.code)}</span>
+            <strong style="display:block;margin-top:0.15rem">${escapeHtml(room.name)}</strong>
+            <span class="meta">${CATALOG.wingLabel(room.wing)}</span></a>
+            <p class="mt-3" style="color:var(--done);font-size:0.875rem;margin:0">狀態良好</p>
+          </section>`;
+        }
+        return `<section class="mobile-room-block">
+          <a href="#/rooms/${room.id}"><span class="meta" style="font-family:ui-monospace,monospace">${escapeHtml(room.code)}</span>
+          <strong style="display:block;margin-top:0.15rem">${escapeHtml(room.name)}</strong>
+          <span class="meta">${CATALOG.wingLabel(room.wing)}</span></a>
+          ${issues
+            .map(
+              (i) => `
+            <div class="issue-row">
+              <a href="#/issues/${i.id}" style="font-weight:500">${escapeHtml(i.title)}</a>
+              <div class="mt-2" style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">
+                ${badge(i.status)}
+                <span class="meta">${escapeHtml(i.assignee || "未指定")} · ${formatDateShort(i.last_checked_on)}${
+                  i.status !== "done" ? " · 下次 " + formatDateShort(nextCheck(i.last_checked_on)) : ""
+                }${API.isDue(i) ? " · 待點名" : ""}</span>
+                <button type="button" class="delete-btn" data-delete-issue="${i.id}">刪除</button>
+              </div>
+            </div>`,
+            )
+            .join("")}
+        </section>`;
+      })
+      .join("");
+
+    let rows = "";
+    grouped.forEach(({ room, issues }) => {
+      if (!issues.length) {
+        rows += `<tr>
+          <td>${roomCell(room)}</td>
+          <td colspan="5" style="color:var(--done)">狀態良好</td>
+        </tr>`;
+        return;
+      }
+      issues.forEach((i, idx) => {
+        rows += `<tr>
+          ${idx === 0 ? `<td rowspan="${issues.length}">${roomCell(room)}</td>` : ""}
+          <td>
+            <a href="#/issues/${i.id}" style="font-weight:500">${escapeHtml(i.title)}</a>
+            <div class="meta mt-2">${CATALOG.categoryLabel(i.category)}${API.isDue(i) ? " · 待點名" : ""}</div>
+          </td>
+          <td>${badge(i.status)}</td>
+          <td class="muted">${escapeHtml(i.assignee || "—")}</td>
+          <td class="muted" style="font-variant-numeric:tabular-nums">${formatDateShort(i.last_checked_on)}</td>
+          <td>
+            <div class="muted" style="font-variant-numeric:tabular-nums">${
+              i.status === "done" ? "—" : formatDateShort(nextCheck(i.last_checked_on))
+            }</div>
+            <button type="button" class="delete-btn mt-2" data-delete-issue="${i.id}">刪除</button>
+          </td>
+        </tr>`;
+      });
+    });
+
+    return `
+      ${modeBanner()}
+      <header class="page-header flex-between">
+        <div>
+          <p class="eyebrow">開會用</p>
+          <h1>會議總表</h1>
+          <p>取代 Word／Excel 的學期檢查表。資料存在 Google Sheet；錯誤輸入可按「刪除」。</p>
+        </div>
+        <button type="button" class="btn btn-secondary" id="btn-export-csv">匯出 CSV</button>
+      </header>
+      <div class="board-mobile">${mobile}</div>
+      <div class="board-desktop table-wrap">
+        <table class="board">
+          <thead>
+            <tr>
+              <th>地點</th><th>現況</th><th>狀態</th><th>負責人</th><th>上次更新</th><th>下次點名</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function roomCell(room) {
+    return `<a href="#/rooms/${room.id}">
+      <span class="meta" style="font-family:ui-monospace,monospace">${escapeHtml(room.code)}</span>
+      <strong style="display:block;margin-top:0.15rem">${escapeHtml(room.name)}</strong>
+      <span class="meta">${CATALOG.wingLabel(room.wing)}</span>
+    </a>`;
+  }
+
+  function renderReport() {
+    const roomOpts = state.rooms
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(
+        (r) =>
+          `<option value="${r.id}" ${state.params.room === r.id ? "selected" : ""}>${escapeHtml(r.code)} ${escapeHtml(r.name)}</option>`,
+      )
+      .join("");
+    const catOpts = CATALOG.CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join("");
+    const statusOpts = CATALOG.STATUSES.filter((s) => s.id !== "done")
+      .map((s) => `<option value="${s.id}">${s.label}</option>`)
+      .join("");
+
+    return `
+      ${modeBanner()}
+      <header class="page-header">
+        <h1>報告問題</h1>
+        <p>見到冷氣壞、窗損壞、洗眼器沒水，直接開單。之後技術員會在同一張單寫跟進，直到「完成」。</p>
+      </header>
+      <div class="form-card" style="max-width:36rem">
+        <form id="report-form" class="stack gap-4">
+          <div class="field">
+            <label>地點</label>
+            <select name="roomId" required>
+              <option value="" disabled ${state.params.room ? "" : "selected"}>選擇實驗室或特別室</option>
+              ${roomOpts}
+            </select>
+          </div>
+          <div class="field">
+            <label>問題摘要</label>
+            <input name="title" required maxlength="200" placeholder="例如：三部冷氣損壞，室溫極高" />
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="field"><label>類別</label><select name="category">${catOpts}</select></div>
+            <div class="field"><label>狀態</label><select name="status">${statusOpts}</select></div>
+          </div>
+          <div class="form-grid form-grid-2">
+            <div class="field"><label>發現日期</label><input type="date" name="reportedOn" value="${API.todayISO()}" required /></div>
+            <div class="field"><label>負責人（可空）</label><input name="assignee" placeholder="例如：Phoebe、豪哥" /></div>
+          </div>
+          <div class="field">
+            <label>情況說明</label>
+            <textarea name="note" required placeholder="寫下你見到的情況。技術員之後會在同一張單繼續跟進。"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">提交紀錄</button>
+        </form>
+      </div>`;
+  }
+
+  function modeBanner() {
+    if (state.mode === "remote") {
+      return `<div class="mode-banner">已連接 Google Sheet（雲端同步）</div>`;
+    }
+    if (state.mode === "local-fallback") {
+      return `<div class="mode-banner" style="background:var(--danger-bg);color:var(--danger)">未能連接 Google Sheet，暫時用本機示範資料。請確認 Apps Script 部署為「任何人」，並用 http://localhost 或 GitHub Pages 開啟（不要用 file://）。</div>`;
+    }
+    return `<div class="mode-banner">示範模式：資料存在此瀏覽器。要給同事共用，請在 <code>js/config.js</code> 填入 Apps Script 網址。</div>`;
+  }
+
+  /* ---------- render ---------- */
+  function render() {
+    renderHeader();
+    const root = document.getElementById("app");
+    let html = "";
+    switch (state.view) {
+      case "room":
+        html = renderRoom();
+        break;
+      case "issue":
+        html = renderIssue();
+        break;
+      case "board":
+        html = renderBoard();
+        break;
+      case "checkin":
+        html = renderCheckin();
+        break;
+      case "report":
+        html = renderReport();
+        break;
+      default:
+        html = renderHome();
+    }
+    root.innerHTML = html;
+    bindViewEvents();
+  }
+
+  function bindViewEvents() {
+    document.querySelectorAll("[data-follow-up]").forEach((form) => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!requireIdentity()) return;
+        const issueId = Number(form.getAttribute("data-follow-up"));
+        const fd = new FormData(form);
+        const note = String(fd.get("note") || "").trim();
+        if (!note) {
+          toast("請先寫下跟進說明");
+          return;
+        }
+        const status = String(fd.get("status"));
+        const happenedOn = String(fd.get("happenedOn") || API.todayISO());
+        const assignee = fd.get("assignee");
+        try {
+          await API.addUpdate({
+            issueId,
+            status,
+            note,
+            happenedOn,
+            authorName: state.identity.name,
+            authorRole: state.identity.role,
+            assignee: assignee !== null ? String(assignee) : undefined,
+          });
+          toast("已寫入跟進");
+          await refresh();
+          render();
+        } catch (err) {
+          toast(err.message || "無法儲存");
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-keep-status]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!requireIdentity()) return;
+        const issueId = Number(btn.getAttribute("data-keep-status"));
+        const issue = state.issues.find((i) => i.id === issueId);
+        if (!issue) return;
+        try {
+          await API.addUpdate({
+            issueId,
+            status: issue.status,
+            note: "維持原狀，本月已點名。",
+            happenedOn: API.todayISO(),
+            authorName: state.identity.name,
+            authorRole: state.identity.role,
+            assignee: issue.assignee,
+          });
+          toast("已寫入跟進");
+          await refresh();
+          render();
+        } catch (err) {
+          toast(err.message || "無法儲存");
+        }
+      });
+    });
+
+    document.querySelectorAll("[data-delete-issue]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const issueId = Number(btn.getAttribute("data-delete-issue"));
+        const issue = state.issues.find((i) => i.id === issueId);
+        if (!issue) return;
+        if (
+          !confirm(
+            `確定刪除「${issue.room_code} ${issue.title}」？\n此操作會一併刪除時間線紀錄，無法復原。`,
+          )
+        ) {
+          return;
+        }
+        try {
+          await API.deleteIssue(issueId);
+          toast("已刪除");
+          await refresh();
+          if (state.view === "issue") navigate("#/");
+          else render();
+        } catch (err) {
+          toast(err.message || "無法刪除");
+        }
+      });
+    });
+
+    const reportForm = document.getElementById("report-form");
+    if (reportForm) {
+      reportForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!requireIdentity()) return;
+        const fd = new FormData(reportForm);
+        try {
+          const res = await API.createIssue({
+            roomId: String(fd.get("roomId")),
+            title: String(fd.get("title") || "").trim(),
+            category: String(fd.get("category")),
+            status: String(fd.get("status")),
+            assignee: String(fd.get("assignee") || "").trim(),
+            note: String(fd.get("note") || "").trim(),
+            reportedOn: String(fd.get("reportedOn")),
+            authorName: state.identity.name,
+            authorRole: state.identity.role,
+          });
+          toast("已記錄問題");
+          await refresh();
+          navigate("#/issues/" + res.id);
+        } catch (err) {
+          toast(err.message || "無法儲存");
+        }
+      });
+    }
+
+    const exportBtn = document.getElementById("btn-export-csv");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        const header = ["地點編號", "地點", "組別", "問題", "類別", "狀態", "負責人", "發現日期", "上次更新", "下次點名"];
+        const rows = state.issues.map((i) => [
+          i.room_code,
+          i.room_name,
+          CATALOG.wingLabel(i.room_wing),
+          i.title,
+          CATALOG.categoryLabel(i.category),
+          CATALOG.statusLabel(i.status),
+          i.assignee,
+          i.reported_on,
+          i.last_checked_on,
+          i.status === "done" ? "" : nextCheck(i.last_checked_on),
+        ]);
+        const csv = [header, ...rows]
+          .map((row) => row.map((c) => `"${String(c).replaceAll('"', '""')}"`).join(","))
+          .join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "室況台.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+  function escapeAttr(s) {
+    return escapeHtml(s).replaceAll("'", "&#39;");
+  }
+
+  /* ---------- identity modal ---------- */
+  function openIdentityModal() {
+    document.getElementById("identity-modal").classList.remove("hidden");
+    document.getElementById("identity-name").value = state.identity.name || "";
+    document.querySelectorAll(".role-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.role === state.identity.role);
+    });
+  }
+
+  function closeIdentityModal() {
+    document.getElementById("identity-modal").classList.add("hidden");
+  }
+
+  document.getElementById("identity-chip")?.addEventListener("click", openIdentityModal);
+  document.getElementById("mobile-identity")?.addEventListener("click", openIdentityModal);
+  document.getElementById("identity-close")?.addEventListener("click", closeIdentityModal);
+  document.getElementById("identity-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("identity-name").value;
+    const role = document.querySelector(".role-btn.active")?.dataset.role || "teacher";
+    if (!name.trim()) return;
+    saveIdentity(name, role);
+    closeIdentityModal();
+    toast("已記住身分");
+  });
+  document.querySelectorAll(".role-btn").forEach((b) => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll(".role-btn").forEach((x) => x.classList.remove("active"));
+      b.classList.add("active");
+    });
+  });
+
+  /* ---------- boot ---------- */
+  async function boot() {
+    try {
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      toast("載入失敗：" + (err.message || err));
+      state.rooms = CATALOG.ROOMS;
+      state.issues = [];
+      state.updates = [];
+    }
+    const r = parseHash();
+    state.view = r.view;
+    state.params = r.params;
+    render();
+  }
+
+  boot();
+})();
+
+    </script>
   </body>
 </html>
