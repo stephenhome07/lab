@@ -27,109 +27,98 @@
       touch-action: manipulation;
     }
 
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Microsoft JhengHei", sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      padding-bottom: 32px;
+      overflow-x: hidden;
     }
 
-    /* Top Status Bar */
+    /* 主框架：確保掃描頁可鎖定全屏高度，鍵盤絕不移位 */
+    .app-shell {
+      max-width: 560px;
+      margin: 0 auto;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部統計與同步狀態列 */
     .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(8px);
+      flex-shrink: 0;
+      background: rgba(15, 23, 42, 0.98);
       border-bottom: 1px solid var(--border);
-      padding: 10px 12px;
-    }
-
-    .topbar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .event-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #e2e8f0;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .sync-badge {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 99px;
-      background: #334155;
-      color: #cbd5e1;
-      cursor: pointer;
-    }
-    .sync-badge.online {
-      background: #065f46;
-      color: #6ee7b7;
+      padding: 8px 10px;
     }
 
     .stats-row {
       display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 8px;
+      grid-template-columns: 1fr 1fr auto auto;
+      gap: 6px;
       align-items: center;
     }
 
     .stat-pill {
-      padding: 8px 10px;
+      padding: 7px 10px;
       border-radius: 10px;
       font-weight: 800;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .stat-vip {
       background: rgba(245, 158, 11, 0.18);
-      border: 1px solid rgba(245, 158, 11, 0.5);
+      border: 1px solid rgba(245, 158, 11, 0.55);
       color: #fcd34d;
     }
 
     .stat-play {
       background: rgba(16, 185, 129, 0.18);
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      border: 1px solid rgba(16, 185, 129, 0.55);
       color: #6ee7b7;
+    }
+
+    .sync-dot {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: #334155;
+      color: #cbd5e1;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .sync-dot.online {
+      background: rgba(6, 95, 70, 0.9);
+      color: #6ee7b7;
+      border: 1px solid #10b981;
     }
 
     .icon-btn {
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px 11px;
-      border-radius: 10px;
-      font-size: 15px;
+      padding: 6px 9px;
+      border-radius: 9px;
+      font-size: 14px;
       cursor: pointer;
     }
 
-    .container {
-      max-width: 540px;
-      margin: 0 auto;
-      padding: 12px;
-    }
-
-    /* Navigation Tabs */
+    /* 四大分頁導航列 */
     .tabs {
+      flex-shrink: 0;
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 6px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
       background: var(--card);
       padding: 4px;
-      border-radius: 12px;
-      margin-bottom: 12px;
+      margin: 6px 8px 0 8px;
+      border-radius: 11px;
       border: 1px solid var(--border);
     }
 
@@ -137,76 +126,178 @@
       background: transparent;
       border: none;
       color: var(--muted);
-      padding: 9px 4px;
-      font-size: 14px;
-      font-weight: 700;
-      border-radius: 9px;
+      padding: 8px 2px;
+      font-size: 12.5px;
+      font-weight: 800;
+      border-radius: 8px;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     .tab-btn.active {
-      background: #3b82f6;
+      background: #2563eb;
       color: #ffffff;
     }
 
-    /* Camera & OCR Section */
-    .scan-bar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 10px;
+    /* ==================== 分頁 1：固定鍵盤掃描分流佈局 ==================== */
+    #viewScan {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 8px 8px 8px;
+      gap: 6px;
     }
 
-    .cam-btn {
+    /* 搜尋欄與相機按鈕合併列（固定高度） */
+    .top-input-bar {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .search-box {
+      position: relative;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 12px 10px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 58px 10px 12px;
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-radius: 12px;
+      border: 2px solid #475569;
+      background: #020617;
+      color: #f8fafc;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .search-input::placeholder {
+      font-size: 13px;
+      letter-spacing: 0;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 6px;
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .cam-mini-btn {
+      height: 46px;
+      padding: 0 11px;
       border-radius: 12px;
       border: 1px solid #60a5fa;
       background: linear-gradient(135deg, #1d4ed8, #2563eb);
-      color: white;
-      font-size: 15px;
+      color: #fff;
+      font-size: 13px;
       font-weight: 800;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
     }
 
-    .cam-btn.secondary {
+    .cam-mini-btn.alt {
       background: var(--card);
       border-color: var(--border);
-      box-shadow: none;
-      font-size: 14px;
     }
 
+    /* 中央動態顯示窗（獨立內部滾動，絕不推走下方鍵盤！） */
+    .scan-display-stage {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 8px;
+    }
+
+    /* 底部 100% 鎖定位置九宮格數字鍵盤 */
+    .docked-numpad-wrap {
+      flex-shrink: 0;
+    }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .num-key {
+      background: var(--card);
+      border: 1px solid #475569;
+      color: var(--text);
+      font-size: 24px;
+      font-weight: 900;
+      height: 48px;
+      border-radius: 12px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .num-key:active {
+      background: #2563eb;
+      transform: scale(0.97);
+    }
+
+    .num-key.fn {
+      font-size: 14px;
+      background: #334155;
+    }
+
+    /* 相機預覽區 */
     #cameraModal {
       display: none;
       background: #000;
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       border: 2px solid #3b82f6;
       position: relative;
     }
 
     #videoPreview {
       width: 100%;
-      max-height: 240px;
+      max-height: 190px;
       object-fit: cover;
       display: block;
     }
 
     .plate-guide {
       position: absolute;
-      top: 50%;
+      top: 44%;
       left: 50%;
-      transform: translate(-50%, -65%);
-      width: 76%;
-      height: 74px;
+      transform: translate(-50%, -50%);
+      width: 78%;
+      height: 64px;
       border: 3px solid #facc15;
       border-radius: 10px;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
       pointer-events: none;
       display: flex;
       align-items: flex-end;
@@ -224,157 +315,94 @@
 
     .cam-controls {
       display: flex;
-      gap: 8px;
-      padding: 10px;
+      gap: 6px;
+      padding: 8px;
       background: #111827;
     }
 
     .ocr-status {
       display: none;
-      padding: 10px 12px;
-      border-radius: 10px;
+      padding: 8px 10px;
+      border-radius: 9px;
       background: #1e3a8a;
       color: #dbeafe;
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
       text-align: center;
     }
 
-    /* Search Input Box */
-    .search-box {
-      position: relative;
-      margin-bottom: 10px;
-    }
-
-    .search-input {
-      width: 100%;
-      padding: 14px 88px 14px 16px;
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      border-radius: 14px;
-      border: 2px solid #475569;
-      background: #020617;
-      color: #f8fafc;
-      outline: none;
-    }
-
-    .search-input:focus {
-      border-color: #38bdf8;
-    }
-
-    .search-input::placeholder {
-      font-size: 15px;
-      letter-spacing: 0;
-      color: #64748b;
-      font-weight: 600;
-    }
-
-    .clear-btn {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: #334155;
-      color: #f8fafc;
-      border: none;
-      border-radius: 9px;
-      padding: 8px 12px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    /* Special Quick Chips */
+    /* 快捷嘉賓按鈕區 */
     .quick-chips {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      margin-bottom: 10px;
-      scrollbar-width: none;
+      margin-bottom: 6px;
     }
-    .quick-chips::-webkit-scrollbar { display: none; }
 
     .chip {
-      flex: 0 0 auto;
       background: #1e293b;
       border: 1px solid #475569;
       color: #e2e8f0;
-      padding: 7px 11px;
+      padding: 6px 10px;
       border-radius: 99px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 700;
       cursor: pointer;
     }
     .chip.gold {
       border-color: #f59e0b;
       color: #fcd34d;
-      background: rgba(245, 158, 11, 0.12);
+      background: rgba(245, 158, 11, 0.14);
+    }
+    .chip.active {
+      background: #2563eb;
+      border-color: #60a5fa;
+      color: #fff;
     }
 
-    /* Result Banner Card */
+    /* 搜尋結果分流卡 */
     .result-card {
-      border-radius: 18px;
-      padding: 16px;
-      margin-bottom: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-      animation: popIn 0.15s ease-out;
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     }
 
-    @keyframes popIn {
-      from { transform: scale(0.97); opacity: 0.8; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    .result-vip {
-      background: var(--vip-bg);
-      border: 3px solid var(--vip-border);
-      color: #fff;
-    }
-
-    .result-play {
-      background: var(--play-bg);
-      border: 3px solid var(--play-border);
-      color: #fff;
-    }
-
-    .result-vp {
-      background: var(--vp-bg);
-      border: 3px solid var(--vp-border);
-      color: #fff;
-    }
-
-    .result-unknown {
-      background: var(--unknown-bg);
-      border: 3px solid var(--unknown-border);
-      color: #fff;
-    }
+    .result-vip { background: var(--vip-bg); border: 2px solid var(--vip-border); color: #fff; }
+    .result-play { background: var(--play-bg); border: 2px solid var(--play-border); color: #fff; }
+    .result-vp { background: var(--vp-bg); border: 2px solid var(--vp-border); color: #fff; }
+    .result-unknown { background: var(--unknown-bg); border: 2px solid var(--unknown-border); color: #fff; }
 
     .zone-badge {
       display: inline-block;
       background: rgba(0, 0, 0, 0.35);
-      padding: 4px 12px;
+      padding: 3px 10px;
       border-radius: 99px;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 800;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .zone-giant {
-      font-size: 34px;
+      font-size: 26px;
       font-weight: 900;
       line-height: 1.15;
-      margin: 4px 0 8px 0;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      margin: 2px 0 6px 0;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
 
     .owner-info {
-      font-size: 22px;
+      font-size: 19px;
       font-weight: 800;
       margin-bottom: 4px;
+    }
+
+    .plates-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      align-items: center;
     }
 
     .plate-tag {
@@ -382,133 +410,107 @@
       background: #fef08a;
       color: #0f172a;
       font-weight: 900;
-      font-size: 20px;
-      padding: 3px 12px;
-      border-radius: 8px;
-      letter-spacing: 1.5px;
-      margin-top: 4px;
+      font-size: 16px;
+      padding: 2px 10px;
+      border-radius: 7px;
+      letter-spacing: 1px;
       border: 2px solid #0f172a;
+    }
+    .plate-tag.matched {
+      background: #ffffff;
+      box-shadow: 0 0 0 3px #38bdf8;
     }
 
     .already-in-alert {
-      margin-top: 10px;
+      margin-top: 8px;
       background: rgba(0, 0, 0, 0.45);
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
       font-weight: 700;
       color: #fde047;
     }
 
     .action-row {
       display: flex;
-      gap: 8px;
-      margin-top: 14px;
+      gap: 6px;
+      margin-top: 10px;
       flex-wrap: wrap;
     }
 
     .checkin-btn {
       flex: 1;
-      min-width: 140px;
-      padding: 14px 12px;
-      border-radius: 12px;
+      min-width: 120px;
+      padding: 11px 10px;
+      border-radius: 10px;
       border: none;
       background: #ffffff;
       color: #0f172a;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 900;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
     }
 
     .checkin-btn.alt {
-      background: rgba(15, 23, 42, 0.75);
+      background: rgba(15, 23, 42, 0.78);
       color: #ffffff;
-      border: 1px solid rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.45);
     }
 
-    /* Multiple Partial Matches List */
+    /* 多筆相近車牌候選列表 */
     .multi-matches {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-bottom: 12px;
     }
 
     .match-item {
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 14px;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 9px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       cursor: pointer;
     }
 
-    /* Giant Numeric Numpad */
-    .numpad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+    .mini-input, .mini-select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(0, 0, 0, 0.4);
+      color: #fff;
+      font-size: 14px;
       margin-top: 6px;
     }
+    .mini-input::placeholder { color: rgba(255,255,255,0.72); }
+    .mini-select option { background: #0f172a; color: #fff; }
 
-    .num-key {
-      background: var(--card);
-      border: 1px solid #475569;
-      color: var(--text);
-      font-size: 26px;
-      font-weight: 800;
-      padding: 15px 0;
-      border-radius: 14px;
-      cursor: pointer;
-      user-select: none;
+    /* ==================== 分頁 2、3、4 共用滾動容器 ==================== */
+    .scroll-tab-view {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px 10px 32px 10px;
+      display: none;
     }
 
-    .num-key:active {
-      background: #3b82f6;
-      transform: scale(0.97);
-    }
-
-    .num-key.fn {
-      font-size: 16px;
-      background: #334155;
-    }
-
-    /* Forms inside cards */
-    .mini-input {
-      width: 100%;
-      padding: 11px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.4);
-      background: rgba(0, 0, 0, 0.35);
-      color: #fff;
-      font-size: 16px;
-      margin-top: 8px;
-    }
-    .mini-input::placeholder {
-      color: rgba(255,255,255,0.7);
-    }
-
-    /* Full List & Logs View */
     .filter-bar {
       display: flex;
       gap: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       overflow-x: auto;
+      padding-bottom: 2px;
     }
 
     .vehicle-row {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 12px;
+      padding: 11px 12px;
       margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
     }
 
     .vehicle-row.checked {
@@ -516,10 +518,55 @@
       background: rgba(16, 185, 129, 0.08);
     }
 
-    .badge-sm {
-      font-size: 12px;
+    .vehicle-row.inactive-event {
+      opacity: 0.62;
+      border-style: dashed;
+    }
+
+    .row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sm-btn {
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 12.5px;
       font-weight: 800;
-      padding: 3px 8px;
+      cursor: pointer;
+    }
+    .sm-btn.taxi {
+      background: #fef08a;
+      color: #0f172a;
+      border-color: #facc15;
+    }
+    .sm-btn.vip {
+      background: rgba(245, 158, 11, 0.22);
+      border-color: #f59e0b;
+      color: #fde68a;
+    }
+    .sm-btn.play {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: #10b981;
+      color: #a7f3d0;
+    }
+
+    .badge-sm {
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 2px 7px;
       border-radius: 6px;
       display: inline-block;
     }
@@ -527,201 +574,268 @@
     .badge-play { background: #10b981; color: #000; }
     .badge-vp { background: #60a5fa; color: #000; }
 
-    /* Settings Card */
+    /* 設定與 AI 匯入卡片 */
     .settings-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 16px;
+      padding: 14px;
       margin-bottom: 12px;
     }
 
     .settings-card h3 {
-      margin: 0 0 10px 0;
-      font-size: 16px;
+      margin: 0 0 8px 0;
+      font-size: 15.5px;
       color: #f8fafc;
     }
 
     .label-sm {
       display: block;
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--muted);
       margin-bottom: 4px;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
-    .dark-input, .dark-select {
+    .dark-input, .dark-select, .dark-textarea {
       width: 100%;
-      padding: 10px 12px;
-      border-radius: 10px;
+      padding: 9px 11px;
+      border-radius: 9px;
       border: 1px solid var(--border);
       background: #0f172a;
       color: #f8fafc;
       font-size: 14px;
     }
 
+    .dark-textarea {
+      min-height: 110px;
+      font-family: monospace;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
     .btn-block {
       width: 100%;
-      padding: 12px;
+      padding: 11px;
       border-radius: 10px;
       border: none;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 8px;
     }
     .btn-blue { background: #2563eb; color: #fff; }
+    .btn-green { background: #059669; color: #fff; }
     .btn-amber { background: #d97706; color: #fff; }
-    .btn-red { background: #dc2626; color: #fff; }
     .btn-slate { background: #334155; color: #fff; }
+
+    /* 彈出式新增/編輯視窗 (5分鐘前極速加減) */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .modal-panel {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 440px;
+      padding: 16px;
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
 
     .toast {
       position: fixed;
-      bottom: 20px;
+      top: 62px;
       left: 50%;
       transform: translateX(-50%);
       background: #10b981;
       color: #022c22;
       font-weight: 900;
-      padding: 12px 22px;
+      padding: 10px 18px;
       border-radius: 99px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       z-index: 999;
       display: none;
-      font-size: 15px;
+      font-size: 14px;
       white-space: nowrap;
     }
   </style>
 </head>
 <body>
 
-  <!-- 頂部即時車位統計欄 -->
-  <div class="topbar">
-    <div class="topbar-header">
-      <div class="event-title">
-        <span>🚗 車場分流系統</span>
-        <span id="teacherBadge" style="color:#38bdf8;font-size:12px;">(一號崗老師)</span>
-      </div>
-      <div id="syncStatusBadge" class="sync-badge" onclick="switchTab('settings')">
-        📱 單機記憶模式
+  <div class="app-shell">
+    <!-- 頂部即時車位統計欄（已移除崗位名稱，清晰顯示車位與同步燈號） -->
+    <div class="topbar">
+      <div class="stats-row">
+        <div class="stat-pill stat-vip">
+          <span>🌟 VIP車位</span>
+          <span id="vipCountText">0 / 13</span>
+        </div>
+        <div class="stat-pill stat-play">
+          <span>🅿️ 操場車位</span>
+          <span id="playCountText">0 架</span>
+        </div>
+        <div id="syncStatusBadge" class="sync-dot" onclick="switchTab('settings')">
+          ⏳ 連線中
+        </div>
+        <button class="icon-btn" onclick="manualSync()" title="立即同步">🔄</button>
       </div>
     </div>
-    <div class="stats-row">
-      <div class="stat-pill stat-vip">
-        <span>🌟 VIP位</span>
-        <span id="vipCountText">0 / 13</span>
-      </div>
-      <div class="stat-pill stat-play">
-        <span>🅿️ 操場</span>
-        <span id="playCountText">0 架</span>
-      </div>
-      <button class="icon-btn" onclick="manualSync()" title="即時刷新同步">🔄</button>
-    </div>
-  </div>
 
-  <div class="container">
-    <!-- 分頁切換 -->
+    <!-- 四大分頁切換 -->
     <div class="tabs">
-      <button class="tab-btn active" id="tabBtnScan" onclick="switchTab('scan')">🔍 掃描/快搜</button>
-      <button class="tab-btn" id="tabBtnList" onclick="switchTab('list')">📋 總名單 (27)</button>
-      <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ 同步/管理</button>
+      <button class="tab-btn active" id="tabBtnScan" onclick="switchTab('scan')">🔍 掃描分流</button>
+      <button class="tab-btn" id="tabBtnPending" onclick="switchTab('pending')">⏳ 未到 (27)</button>
+      <button class="tab-btn" id="tabBtnList" onclick="switchTab('list')">📋 名單加減</button>
+      <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">🤖 AI匯入/設定</button>
     </div>
 
-    <!-- ==================== 分頁 1：掃描與極速搜尋 ==================== -->
+    <!-- ==================== 分頁 1：固定數字鍵盤掃描分流 ==================== -->
     <div id="viewScan">
-      <!-- 鏡頭掃描按鈕列 -->
-      <div class="scan-bar">
-        <button class="cam-btn" onclick="openLiveCamera()">
-          📷 開啟鏡頭識車牌
-        </button>
-        <button class="cam-btn secondary" onclick="document.getElementById('photoInput').click()">
-          📸 原生相機影相辨識
-        </button>
+      <!-- 頂部固定輸入框 + 鏡頭按鈕 -->
+      <div class="top-input-bar">
+        <div class="search-box">
+          <input
+            type="text"
+            id="plateInput"
+            class="search-input"
+            placeholder="按下方數字或影相..."
+            oninput="onSearchChange(this.value)"
+          />
+          <button class="clear-btn" onclick="clearSearch()">清除</button>
+        </div>
+        <button class="cam-mini-btn" onclick="openLiveCamera()" title="即時鏡頭框選辨識">📷 鏡頭</button>
+        <button class="cam-mini-btn alt" onclick="document.getElementById('photoInput').click()" title="原生相機影相">📸</button>
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)" />
       </div>
 
-      <!-- 即時鏡頭預覽框 -->
-      <div id="cameraModal">
-        <video id="videoPreview" autoplay playsinline muted></video>
-        <div class="plate-guide"><span>請將車牌對準黃框內</span></div>
-        <div class="cam-controls">
-          <button class="checkin-btn" style="background:#facc15;color:#000;padding:11px;" onclick="captureFromVideo()">⚡ 立即擷取辨識</button>
-          <button class="checkin-btn alt" style="flex:0 0 85px;padding:11px;" onclick="closeLiveCamera()">關閉</button>
+      <!-- 中央獨立滾動顯示區（結果多寡均在框內顯示，絕不把鍵盤推落底！） -->
+      <div class="scan-display-stage" id="scanDisplayStage">
+        <div id="cameraModal">
+          <video id="videoPreview" autoplay playsinline muted></video>
+          <div class="plate-guide"><span>車牌對準黃框</span></div>
+          <div class="cam-controls">
+            <button class="checkin-btn" style="background:#facc15;color:#000;padding:9px;" onclick="captureFromVideo()">⚡ 擷取辨識</button>
+            <button class="checkin-btn alt" style="flex:0 0 75px;padding:9px;" onclick="closeLiveCamera()">關閉</button>
+          </div>
         </div>
+
+        <div id="ocrStatus" class="ocr-status">⏳ 正在辨識車牌...</div>
+        <div id="ocrCandidates" class="quick-chips" style="display:none;"></div>
+
+        <!-- 空白時顯示特殊無車牌/自訂車牌快選提示 -->
+        <div id="idleQuickPanel">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;">⚡ 特殊貴賓／自訂車牌快選（或直接按下方數字掣）：</div>
+          <div class="quick-chips">
+            <button class="chip gold" onclick="selectSpecialGuest('GUEST_TENG')">🎖️ 滕錦光教授 (主禮)</button>
+            <button class="chip gold" onclick="selectSpecialGuest('SSY_1')">🚐 姚嘉棟主席 (園車)</button>
+            <button class="chip gold" onclick="selectSpecialGuest('SSY_2')">🚐 黃子峰總監 (園車)</button>
+            <button class="chip" onclick="quickFill('APM')">APM (蕭校監)</button>
+            <button class="chip" onclick="quickFill('XOX')">XOX (吳校董)</button>
+            <button class="chip" onclick="quickFill('ZOELAM')">ZOE LAM (吳校長)</button>
+          </div>
+          <div style="font-size:12px;color:#64748b;margin-top:8px;line-height:1.45;">
+            💡 提示：直接按下方九宮格輸入車牌尾數（如 <strong>6618</strong>），鍵盤位置已鎖定不會下移；如嘉賓搭的士到場，可按上方「<strong>⏳ 未到</strong>」一鍵剔選。
+          </div>
+        </div>
+
+        <!-- 配對結果卡片 -->
+        <div id="resultContainer"></div>
+        <!-- 多筆相近車牌列表 -->
+        <div id="multiMatchContainer" class="multi-matches"></div>
       </div>
 
-      <div id="ocrStatus" class="ocr-status">⏳ 正在辨識車牌文字...</div>
-      <div id="ocrCandidates" class="quick-chips" style="display:none;"></div>
-
-      <!-- 車牌輸入框 -->
-      <div class="search-box">
-        <input
-          type="text"
-          id="plateInput"
-          class="search-input"
-          placeholder="輸入車牌數字或英文 (如 6618)"
-           oninput="onSearchChange(this.value)"
-        />
-        <button class="clear-btn" onclick="clearSearch()">清除</button>
-      </div>
-
-      <!-- 特殊車輛與自訂車牌一鍵快選 -->
-      <div class="quick-chips">
-        <button class="chip gold" onclick="selectSpecialGuest('GUEST_TENG')">🎖️ 滕錦光教授 (主禮)</button>
-        <button class="chip gold" onclick="selectSpecialGuest('SSY_1')">🚐 嗇色園園車 (主席/總監)</button>
-        <button class="chip" onclick="quickFill('APM')">APM (蕭校監)</button>
-        <button class="chip" onclick="quickFill('XOX')">XOX (吳校董)</button>
-        <button class="chip" onclick="quickFill('ZOELAM')">ZOE LAM (吳校長)</button>
-      </div>
-
-      <!-- 搜尋結果全屏分流卡 -->
-      <div id="resultContainer"></div>
-
-      <!-- 多筆相近車牌候選列表 -->
-      <div id="multiMatchContainer" class="multi-matches"></div>
-
-      <!-- 超大型防誤觸九宮格數字掣 -->
-      <div class="numpad" id="numpadArea">
-        <button class="num-key" onclick="pressDigit('1')">1</button>
-        <button class="num-key" onclick="pressDigit('2')">2</button>
-        <button class="num-key" onclick="pressDigit('3')">3</button>
-        <button class="num-key" onclick="pressDigit('4')">4</button>
-        <button class="num-key" onclick="pressDigit('5')">5</button>
-        <button class="num-key" onclick="pressDigit('6')">6</button>
-        <button class="num-key" onclick="pressDigit('7')">7</button>
-        <button class="num-key" onclick="pressDigit('8')">8</button>
-        <button class="num-key" onclick="pressDigit('9')">9</button>
-        <button class="num-key fn" onclick="document.getElementById('plateInput').focus()">ABC 鍵盤</button>
-        <button class="num-key" onclick="pressDigit('0')">0</button>
-        <button class="num-key fn" onclick="backspaceDigit()">⌫ 退格</button>
+      <!-- 底部 100% 鎖定位置九宮格數字掣 -->
+      <div class="docked-numpad-wrap">
+        <div class="numpad">
+          <button class="num-key" onclick="pressDigit('1')">1</button>
+          <button class="num-key" onclick="pressDigit('2')">2</button>
+          <button class="num-key" onclick="pressDigit('3')">3</button>
+          <button class="num-key" onclick="pressDigit('4')">4</button>
+          <button class="num-key" onclick="pressDigit('5')">5</button>
+          <button class="num-key" onclick="pressDigit('6')">6</button>
+          <button class="num-key" onclick="pressDigit('7')">7</button>
+          <button class="num-key" onclick="pressDigit('8')">8</button>
+          <button class="num-key" onclick="pressDigit('9')">9</button>
+          <button class="num-key fn" onclick="focusAlphaKeyboard()">ABC 英文</button>
+          <button class="num-key" onclick="pressDigit('0')">0</button>
+          <button class="num-key fn" onclick="backspaceDigit()">⌫ 退格</button>
+        </div>
       </div>
     </div>
 
-    <!-- ==================== 分頁 2：全部名單與進場紀錄 ==================== -->
-    <div id="viewList" style="display:none;">
-      <div class="filter-bar">
-        <button class="chip active" onclick="setListFilter('ALL')">全部名單</button>
-        <button class="chip gold" onclick="setListFilter('VIP')">🌟 VIP位</button>
-        <button class="chip" onclick="setListFilter('PLAY')">🅿️ 操場</button>
-        <button class="chip" onclick="setListFilter('IN')">✅ 已進場</button>
-        <button class="chip" onclick="setListFilter('PENDING')">⏳ 未到場</button>
+    <!-- ==================== 分頁 2：⏳ 還未到的嘉賓（支援的士/共乘手動簽到） ==================== -->
+    <div id="viewPending" class="scroll-tab-view">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="pendingSearchInput" class="dark-input" placeholder="🔍 搜尋未到嘉賓姓名、學校或車牌..." oninput="renderPendingList()" />
       </div>
+      <div class="filter-bar">
+        <button class="chip active" id="pFilterAll" onclick="setPendingFilter('ALL')">全部未到</button>
+        <button class="chip gold" id="pFilterVIP" onclick="setPendingFilter('VIP')">🌟 VIP/校長未到</button>
+        <button class="chip" id="pFilterPLAY" onclick="setPendingFilter('PLAY')">🅿️ 老師未到</button>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:8px;">
+        💡 如嘉賓自己 Call 的士或坐他人車到場，請按「<strong>🚕 已到(的士/共乘)</strong>」，系統會記錄已到場但<strong>不會佔用車位數</strong>。
+      </div>
+      <div id="pendingListContainer"></div>
+    </div>
+
+    <!-- ==================== 分頁 3：📋 名單加減（支援當日5分鐘前臨時修改及一人多車） ==================== -->
+    <div id="viewList" class="scroll-tab-view">
+      <button class="btn-block btn-green" style="margin-top:0;margin-bottom:10px;" onclick="openEditModal(null)">
+        ➕ 臨時新增嘉賓／車輛（支援一人多車牌，即時同步）
+      </button>
+
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="listSearchInput" class="dark-input" placeholder="🔍 搜尋名單姓名、學校或車牌..." oninput="renderVehicleList()" />
+      </div>
+
+      <div class="filter-bar">
+        <button class="chip active" id="lFilterACTIVE" onclick="setListFilter('ACTIVE')">是次活動名單</button>
+        <button class="chip" id="lFilterIN" onclick="setListFilter('IN')">✅ 已到場</button>
+        <button class="chip" id="lFilterALL" onclick="setListFilter('ALL')">🗄️ 永久總庫 (含歷史)</button>
+      </div>
+
       <div id="vehicleListContainer"></div>
     </div>
 
-    <!-- ==================== 分頁 3：4人同步設定及永久庫管理 ==================== -->
-    <div id="viewSettings" style="display:none;">
+    <!-- ==================== 分頁 4：🤖 AI 分析名單匯入及系統設定 ==================== -->
+    <div id="viewSettings" class="scroll-tab-view">
+      <!-- AI 批次決定是次活動名單 -->
       <div class="settings-card">
-        <h3>👮 崗位及分流規則設定</h3>
-        <label class="label-sm">您目前的崗位名稱（顯示於進場記錄）：</label>
-        <select id="operatorSelect" class="dark-select" onchange="saveSettings()">
-          <option value="一號崗老師">一號崗老師（大閘口）</option>
-          <option value="二號崗老師">二號崗老師（大閘分流）</option>
-          <option value="三號崗老師">三號崗老師（VIP區入口）</option>
-          <option value="四號崗老師">四號崗老師（操場入口）</option>
+        <h3>🤖 AI 分析後一鍵設定「是次活動泊車名單」</h3>
+        <p style="font-size:12.5px;color:#94a3b8;margin:4px 0 8px 0;line-height:1.5;">
+          下次有新活動名單（Excel / Word / 相片）時，先交給我（AI）分析整理成以下格式，貼入下方即可自動比對永久庫、支援一人多車牌，並設定為「參與是次活動」：
+        </p>
+        <button class="sm-btn" style="width:100%;margin-bottom:8px;text-align:center;" onclick="copyAiPromptTemplate()">
+          📋 複製給 AI 的整理指令 (Prompt)
+        </button>
+        <textarea
+          id="aiImportTextarea"
+          class="dark-textarea"
+          placeholder="貼上 AI 整理好的名單（每行一位，格式：機構,姓名,車牌1/車牌2,職銜,VIP或PLAY）&#10;例如：&#10;可立,黎洛琪校長,YM 6618 / AB 1234,校長,VIP&#10;可風,陳廣鴻老師,ZW1587,老師,PLAY&#10;主禮嘉賓,滕錦光教授,,主禮嘉賓,VIP"
+        ></textarea>
+        <label class="label-sm">匯入模式：</label>
+        <select id="aiImportMode" class="dark-select">
+          <option value="REPLACE_EVENT">設為「全新活動名單」（舊名單自動轉為歷史備查，清空今日進場）</option>
+          <option value="APPEND_EVENT">追加／更新至「目前活動名單」（保留目前已勾選嘉賓）</option>
         </select>
+        <button class="btn-block btn-blue" onclick="runAiBatchImport()">⚡ 立即匯入並同步至 Google Sheet</button>
+      </div>
 
-        <label class="label-sm">名單內「副校長（共3位）」預設泊位指引：</label>
+      <!-- 分流規則設定 -->
+      <div class="settings-card">
+        <h3>⚙️ 分流及車位上限設定</h3>
+        <label class="label-sm">名單內「副校長」預設泊位指引：</label>
         <select id="vpPolicySelect" class="dark-select" onchange="saveSettings()">
           <option value="FLEX">現場彈性選擇（同時顯示 VIP 及 操場 按鈕）</option>
           <option value="PLAY">統一預設泊「操場」</option>
@@ -732,107 +846,181 @@
         <input type="number" id="vipCapacityInput" class="dark-input" value="13" onchange="saveSettings()" />
       </div>
 
+      <!-- 已直連 Google Sheet 設定 -->
       <div class="settings-card">
-        <h3>☁️ 4位老師手機即時同步（Google Sheet 雲端庫）</h3>
-        <p style="font-size:13px;color:#94a3b8;margin:4px 0 8px 0;line-height:1.5;">
-          如直接透過 Google Apps Script 網址開啟本頁，系統會<strong>自動連線同步</strong>；如用單機 HTML 檔案開啟，只需貼上部署好的 Apps Script 網址即可4機即時同步。
+        <h3>☁️ Google Sheet 直連同步設定</h3>
+        <p style="font-size:12.5px;color:#6ee7b7;margin:4px 0 6px 0;line-height:1.45;">
+          ✅ 已內建您的 Google Sheet Web App 網址，打開即自動讀寫同步。
         </p>
-        <label class="label-sm">Google Apps Script 網頁應用程式網址 (選填)：</label>
-        <input type="url" id="gasUrlInput" class="dark-input" placeholder="https://script.google.com/macros/s/.../exec" />
+        <label class="label-sm">Google Apps Script 網址：</label>
+        <input type="url" id="gasUrlInput" class="dark-input" />
         <button class="btn-block btn-blue" onclick="saveGasUrlAndSync()">💾 儲存網址並立即同步</button>
+        <button class="btn-block btn-slate" onclick="forcePushAllMasterToSheet()">📤 強制將本機完整名單寫入 Google Sheet</button>
       </div>
 
+      <!-- 跨活動重設與匯出 -->
       <div class="settings-card">
-        <h3>🗄️ 永久車牌記憶庫管理（跨活動沿用）</h3>
-        <p style="font-size:13px;color:#94a3b8;margin:4px 0 8px 0;line-height:1.5;">
-          所有即場新增或補登的校長／嘉賓車牌均會永久保留。下次學校舉辦活動時，按下方「開啟新活動」即可清空今日進場剔號，但<strong>完整保留所有歷史 VIP 車牌記錄</strong>！
-        </p>
-        <button class="btn-block btn-amber" onclick="resetCheckInsOnly()">🔄 開啟新活動（清空今日進場狀態，保留永久車牌庫）</button>
-        <button class="btn-block btn-slate" onclick="exportMasterCsv()">📥 匯出完整永久車牌庫及進場紀錄 (.CSV)</button>
+        <h3>🗄️ 活動重設與備份</h3>
+        <button class="btn-block btn-amber" onclick="resetCheckInsOnly()">🔄 清空今日到場記錄（保留是次名單及永久車牌庫）</button>
+        <button class="btn-block btn-slate" onclick="exportMasterCsv()">📥 匯出完整車牌庫及到場紀錄 (.CSV)</button>
       </div>
     </div>
   </div>
 
-  <!-- 隱藏畫布供鏡頭擷取與影像強化使用 -->
+  <!-- 彈出式視窗：臨時新增 / 編輯嘉賓與多個車牌 -->
+  <div id="editModal" class="modal-backdrop">
+    <div class="modal-panel">
+      <h3 id="modalTitle" style="margin:0 0 10px 0;font-size:17px;">➕ 臨時新增／編輯嘉賓</h3>
+      <input type="hidden" id="editIdInput" />
+
+      <label class="label-sm">學校 / 機構名稱：</label>
+      <input type="text" id="editOrgInput" class="dark-input" placeholder="例如：可立 / 主禮嘉賓 / 嗇色園" />
+
+      <label class="label-sm">姓名及稱呼：</label>
+      <input type="text" id="editNameInput" class="dark-input" placeholder="例如：黎洛琪校長" />
+
+      <label class="label-sm">車牌號碼（支援一人多車牌，請用 / 分隔；未有可留空）：</label>
+      <input type="text" id="editPlatesInput" class="dark-input" placeholder="例如：YM 6618 / AB 1234" style="text-transform:uppercase;font-weight:800;" />
+
+      <label class="label-sm">職銜類別：</label>
+      <input type="text" id="editRoleInput" class="dark-input" placeholder="例如：校長 / 校董 / 老師" />
+
+      <label class="label-sm">預設泊位區域：</label>
+      <select id="editZoneSelect" class="dark-select">
+        <option value="VIP">🌟 VIP 車位（校長/校監/校董/主禮嘉賓）</option>
+        <option value="PLAY">🅿️ 操場泊車（老師/一般來賓）</option>
+        <option value="VP">🔷 副校長彈性分流</option>
+      </select>
+
+      <label class="label-sm">是否列入「是次活動名單」：</label>
+      <select id="editActiveSelect" class="dark-select">
+        <option value="YES">✅ 是（顯示於是次名單及未到嘉賓）</option>
+        <option value="NO">🗄️ 否（僅保留於永久車牌庫備查）</option>
+      </select>
+
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn-block btn-green" style="margin-top:0;" onclick="saveModalVehicle()">💾 儲存並同步</button>
+        <button class="btn-block btn-slate" style="margin-top:0;flex:0 0 90px;" onclick="closeEditModal()">取消</button>
+      </div>
+      <button id="deleteVehicleBtn" class="btn-block" style="background:#7f1d1d;color:#fecaca;display:none;" onclick="deleteModalVehicle()">🗑️ 從永久庫徹底刪除此記錄</button>
+    </div>
+  </div>
+
   <canvas id="captureCanvas" style="display:none;"></canvas>
-  <div id="toastMsg" class="toast">✅ 已記錄進場！</div>
+  <div id="toastMsg" class="toast">✅ 已同步！</div>
 
   <script>
     // =========================================================================
-    // 1. 預載「嗇色園中學聯校頒獎典禮 2025-2026」全部 27 架車名單
+    // 1. 直接內建您的 Google Apps Script Web App 網址
     // =========================================================================
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby4GX-uq0LKbtEcAdTlrLt2QC8Vqny-weLQjbqqlxhCg4-yg9MWuw6grLGKQLbeL2Mz/exec";
+
+    // 預載「嗇色園中學聯校頒獎典禮 2025-2026」27 筆名單（均支援多車牌與 inCurrentEvent）
     const INITIAL_VEHICLES = [
-      { id: "GUEST_TENG", org: "主禮嘉賓", name: "滕錦光教授", rawPlate: "", cleanPlate: "", role: "主禮嘉賓", zone: "VIP", note: "到場時可即場補登綁定車牌" },
-      { id: "SSY_1", org: "嗇色園", name: "姚嘉棟主席", rawPlate: "園車 (1)", cleanPlate: "園車1", role: "主席", zone: "VIP", note: "嗇色園園車" },
-      { id: "SSY_2", org: "嗇色園", name: "黃子峰總監", rawPlate: "園車 (2)", cleanPlate: "園車2", role: "總監", zone: "VIP", note: "嗇色園園車" },
+      { id: "GUEST_TENG", org: "主禮嘉賓", name: "滕錦光教授", rawPlate: "", cleanPlate: "", role: "主禮嘉賓", zone: "VIP", inCurrentEvent: true, note: "可即場補登或按的士到場" },
+      { id: "SSY_1", org: "嗇色園", name: "姚嘉棟主席", rawPlate: "園車1", cleanPlate: "園車1", role: "主席", zone: "VIP", inCurrentEvent: true, note: "嗇色園園車" },
+      { id: "SSY_2", org: "嗇色園", name: "黃子峰總監", rawPlate: "園車2", cleanPlate: "園車2", role: "總監", zone: "VIP", inCurrentEvent: true, note: "嗇色園園車" },
 
-      { id: "HL_1", org: "可立", name: "黎洛琪校長", rawPlate: "YM 6618", cleanPlate: "YM6618", role: "校長", zone: "VIP", note: "" },
-      { id: "HL_2", org: "可立", name: "陳沛聰副校長", rawPlate: "WK 4656", cleanPlate: "WK4656", role: "副校長", zone: "VP", note: "" },
-      { id: "HL_3", org: "可立", name: "嚴偉德老師", rawPlate: "RV 2075", cleanPlate: "RV2075", role: "老師", zone: "PLAY", note: "" },
-      { id: "HL_4", org: "可立", name: "歐潤南老師", rawPlate: "NZ 7515", cleanPlate: "NZ7515", role: "老師", zone: "PLAY", note: "" },
-      { id: "HL_5", org: "可立", name: "陳永華校董", rawPlate: "VG 9687", cleanPlate: "VG9687", role: "校董", zone: "VIP", note: "" },
+      { id: "HL_1", org: "可立", name: "黎洛琪校長", rawPlate: "YM 6618", cleanPlate: "YM6618", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" },
+      { id: "HL_2", org: "可立", name: "陳沛聰副校長", rawPlate: "WK 4656", cleanPlate: "WK4656", role: "副校長", zone: "VP", inCurrentEvent: true, note: "" },
+      { id: "HL_3", org: "可立", name: "嚴偉德老師", rawPlate: "RV 2075", cleanPlate: "RV2075", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HL_4", org: "可立", name: "歐潤南老師", rawPlate: "NZ 7515", cleanPlate: "NZ7515", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HL_5", org: "可立", name: "陳永華校董", rawPlate: "VG 9687", cleanPlate: "VG9687", role: "校董", zone: "VIP", inCurrentEvent: true, note: "" },
 
-      { id: "HF_1", org: "可風", name: "陳廣鴻老師", rawPlate: "ZW1587", cleanPlate: "ZW1587", role: "老師", zone: "PLAY", note: "" },
-      { id: "HF_2", org: "可風", name: "蘇家輝老師", rawPlate: "SY3880", cleanPlate: "SY3880", role: "老師", zone: "PLAY", note: "" },
-      { id: "HF_3", org: "可風", name: "鍾昊殷老師", rawPlate: "RA4323", cleanPlate: "RA4323", role: "老師", zone: "PLAY", note: "" },
-      { id: "HF_4", org: "可風", name: "嚴巧兒老師", rawPlate: "VS5767", cleanPlate: "VS5767", role: "老師", zone: "PLAY", note: "" },
-      { id: "HF_5", org: "可風", name: "黃頌賢老師", rawPlate: "RF1689", cleanPlate: "RF1689", role: "老師", zone: "PLAY", note: "" },
-      { id: "HF_6", org: "可風", name: "吳錦勝校董", rawPlate: "XOX", cleanPlate: "XOX", role: "校董", zone: "VIP", note: "自訂車牌" },
+      { id: "HF_1", org: "可風", name: "陳廣鴻老師", rawPlate: "ZW1587", cleanPlate: "ZW1587", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HF_2", org: "可風", name: "蘇家輝老師", rawPlate: "SY3880", cleanPlate: "SY3880", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HF_3", org: "可風", name: "鍾昊殷老師", rawPlate: "RA4323", cleanPlate: "RA4323", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HF_4", org: "可風", name: "嚴巧兒老師", rawPlate: "VS5767", cleanPlate: "VS5767", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HF_5", org: "可風", name: "黃頌賢老師", rawPlate: "RF1689", cleanPlate: "RF1689", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HF_6", org: "可風", name: "吳錦勝校董", rawPlate: "XOX", cleanPlate: "XOX", role: "校董", zone: "VIP", inCurrentEvent: true, note: "自訂車牌" },
 
-      { id: "HD_1", org: "可道", name: "源植盛校長", rawPlate: "YT 1264", cleanPlate: "YT1264", role: "校長", zone: "VIP", note: "" },
-      { id: "HD_2", org: "可道", name: "何恩瑜老師", rawPlate: "WM 7689", cleanPlate: "WM7689", role: "老師", zone: "PLAY", note: "" },
-      { id: "HD_3", org: "可道", name: "倪國輝老師", rawPlate: "UY 8975", cleanPlate: "UY8975", role: "老師", zone: "PLAY", note: "" },
+      { id: "HD_1", org: "可道", name: "源植盛校長", rawPlate: "YT 1264", cleanPlate: "YT1264", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" },
+      { id: "HD_2", org: "可道", name: "何恩瑜老師", rawPlate: "WM 7689", cleanPlate: "WM7689", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HD_3", org: "可道", name: "倪國輝老師", rawPlate: "UY 8975", cleanPlate: "UY8975", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
 
-      { id: "HYI_1", org: "可藝", name: "張健新校長", rawPlate: "LB 2185", cleanPlate: "LB2185", role: "校長", zone: "VIP", note: "" },
-      { id: "HYI_2", org: "可藝", name: "馮偉亮副校長", rawPlate: "JK 7643", cleanPlate: "JK7643", role: "副校長", zone: "VP", note: "" },
-      { id: "HYI_3", org: "可藝", name: "胡鎮豪副校長", rawPlate: "ZJ 8177", cleanPlate: "ZJ8177", role: "副校長", zone: "VP", note: "" },
-      { id: "HYI_4", org: "可藝", name: "胡家俊老師", rawPlate: "MY 517", cleanPlate: "MY517", role: "老師", zone: "PLAY", note: "" },
-      { id: "HYI_5", org: "可藝", name: "楊少娟老師", rawPlate: "YD 9298", cleanPlate: "YD9298", role: "老師", zone: "PLAY", note: "" },
+      { id: "HYI_1", org: "可藝", name: "張健新校長", rawPlate: "LB 2185", cleanPlate: "LB2185", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" },
+      { id: "HYI_2", org: "可藝", name: "馮偉亮副校長", rawPlate: "JK 7643", cleanPlate: "JK7643", role: "副校長", zone: "VP", inCurrentEvent: true, note: "" },
+      { id: "HYI_3", org: "可藝", name: "胡鎮豪副校長", rawPlate: "ZJ 8177", cleanPlate: "ZJ8177", role: "副校長", zone: "VP", inCurrentEvent: true, note: "" },
+      { id: "HYI_4", org: "可藝", name: "胡家俊老師", rawPlate: "MY 517", cleanPlate: "MY517", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
+      { id: "HYI_5", org: "可藝", name: "楊少娟老師", rawPlate: "YD 9298", cleanPlate: "YD9298", role: "老師", zone: "PLAY", inCurrentEvent: true, note: "" },
 
-      { id: "HYU_1", org: "可譽", name: "蕭德華校監", rawPlate: "APM", cleanPlate: "APM", role: "校監", zone: "VIP", note: "自訂車牌" },
-      { id: "HSS_1", org: "可信小", name: "陳育鳴校長", rawPlate: "EC 8213", cleanPlate: "EC8213", role: "校長", zone: "VIP", note: "" },
-      { id: "HLS_1", org: "可立小", name: "吳樹東校長", rawPlate: "ZOE LAM", cleanPlate: "ZOELAM", role: "校長", zone: "VIP", note: "自訂車牌" },
-      { id: "HSK_1", org: "可瑞幼", name: "陳慧雯校長", rawPlate: "PZ 3917", cleanPlate: "PZ3917", role: "校長", zone: "VIP", note: "" },
-      { id: "HK_1", org: "可觀", name: "郭志泰校長", rawPlate: "DB 6888", cleanPlate: "DB6888", role: "校長", zone: "VIP", note: "" }
+      { id: "HYU_1", org: "可譽", name: "蕭德華校監", rawPlate: "APM", cleanPlate: "APM", role: "校監", zone: "VIP", inCurrentEvent: true, note: "自訂車牌" },
+      { id: "HSS_1", org: "可信小", name: "陳育鳴校長", rawPlate: "EC 8213", cleanPlate: "EC8213", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" },
+      { id: "HLS_1", org: "可立小", name: "吳樹東校長", rawPlate: "ZOE LAM", cleanPlate: "ZOELAM", role: "校長", zone: "VIP", inCurrentEvent: true, note: "自訂車牌" },
+      { id: "HSK_1", org: "可瑞幼", name: "陳慧雯校長", rawPlate: "PZ 3917", cleanPlate: "PZ3917", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" },
+      { id: "HK_1", org: "可觀", name: "郭志泰校長", rawPlate: "DB 6888", cleanPlate: "DB6888", role: "校長", zone: "VIP", inCurrentEvent: true, note: "" }
     ];
 
     // =========================================================================
-    // 2. 狀態儲存與初始化
+    // 2. 一人多車牌解析工具與狀態管理
     // =========================================================================
-    const STORAGE_MASTER_KEY = "hoyu_parking_master_v1";
-    const STORAGE_CHECKIN_KEY = "hoyu_parking_checkins_v1";
-    const STORAGE_SETTINGS_KEY = "hoyu_parking_settings_v1";
+    const STORAGE_MASTER_KEY = "hoyu_parking_master_v2";
+    const STORAGE_CHECKIN_KEY = "hoyu_parking_checkins_v2";
+    const STORAGE_SETTINGS_KEY = "hoyu_parking_settings_v2";
 
     let masterList = [];
-    let checkInMap = {}; // { vehicleId: { zone: 'VIP'|'PLAY', time: '09:12', by: '一號崗老師', plate: 'YM6618' } }
+    let checkInMap = {}; // { vehicleId: { id, zone: 'VIP'|'PLAY'|'TAXI', time: '09:15', plate: 'YM 6618', owner: '...' } }
     let settings = {
-      operator: "一號崗老師",
       vpPolicy: "FLEX",
       vipCapacity: 13,
-      gasUrl: ""
+      gasUrl: DEFAULT_GAS_URL
     };
-    let currentFilter = "ALL";
+
+    let currentListFilter = "ACTIVE";
+    let currentPendingFilter = "ALL";
     let videoStream = null;
     let tesseractLoaded = false;
+    let hasSeededCloudOnce = false;
     const isHostedInGas = (typeof google !== "undefined" && google.script && google.script.run);
 
-    function normalizePlate(str) {
+    function normalizeSinglePlate(str) {
       if (!str) return "";
       return String(str).toUpperCase().replace(/[^A-Z0-9\u4E00-\u9FA5]/g, "");
+    }
+
+    // 支援以 / , 、 ; | 分隔多個車牌
+    function splitRawPlates(rawPlateStr) {
+      if (!rawPlateStr) return [];
+      return String(rawPlateStr)
+        .split(/[\/,、;|]+/)
+        .map(s => s.trim().toUpperCase())
+        .filter(Boolean);
+    }
+
+    function getCleanPlatesList(v) {
+      const rawArr = splitRawPlates(v.rawPlate);
+      if (rawArr.length > 0) {
+        return rawArr.map(normalizeSinglePlate).filter(Boolean);
+      }
+      if (v.cleanPlate) {
+        return String(v.cleanPlate).split(/[\/,、;|]+/).map(normalizeSinglePlate).filter(Boolean);
+      }
+      return [];
+    }
+
+    function buildCombinedCleanPlate(rawPlateStr) {
+      return splitRawPlates(rawPlateStr).map(normalizeSinglePlate).filter(Boolean).join("/");
     }
 
     function initApp() {
       const savedSettings = localStorage.getItem(STORAGE_SETTINGS_KEY);
       if (savedSettings) {
-        try { settings = Object.assign(settings, JSON.parse(savedSettings)); } catch (e) {}
+        try {
+          const parsed = JSON.parse(savedSettings);
+          settings = Object.assign(settings, parsed);
+          if (!settings.gasUrl) settings.gasUrl = DEFAULT_GAS_URL;
+        } catch (e) {}
       }
 
       const savedMaster = localStorage.getItem(STORAGE_MASTER_KEY);
       if (savedMaster) {
-        try { masterList = JSON.parse(savedMaster); } catch (e) { masterList = [...INITIAL_VEHICLES]; }
+        try {
+          masterList = JSON.parse(savedMaster).map(ensureVehicleFields);
+        } catch (e) {
+          masterList = INITIAL_VEHICLES.map(ensureVehicleFields);
+        }
       } else {
-        masterList = [...INITIAL_VEHICLES];
-        saveLocalData();
+        masterList = INITIAL_VEHICLES.map(ensureVehicleFields);
       }
 
       const savedCheckIns = localStorage.getItem(STORAGE_CHECKIN_KEY);
@@ -840,42 +1028,68 @@
         try { checkInMap = JSON.parse(savedCheckIns); } catch (e) { checkInMap = {}; }
       }
 
-      // 套用設定到 UI
-      document.getElementById("operatorSelect").value = settings.operator;
       document.getElementById("vpPolicySelect").value = settings.vpPolicy;
       document.getElementById("vipCapacityInput").value = settings.vipCapacity;
-      document.getElementById("gasUrlInput").value = settings.gasUrl || "";
-      document.getElementById("teacherBadge").textContent = "(" + settings.operator + ")";
+      document.getElementById("gasUrlInput").value = settings.gasUrl;
 
-      updateStatsUI();
+      saveLocalData();
+      renderPendingList();
       renderVehicleList();
 
-      // 若部署於 Google Apps Script 或已設定雲端網址，啟動每 6 秒自動同步
-      if (isHostedInGas || settings.gasUrl) {
-        syncWithCloud(true);
-        setInterval(() => syncWithCloud(false), 6000);
-      }
+      // 啟動即自動連線至您的 Google Sheet 網址並每 6 秒同步
+      syncWithCloud(false);
+      setInterval(() => syncWithCloud(false), 6000);
+    }
+
+    function ensureVehicleFields(v) {
+      return Object.assign({
+        id: "V_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        org: "",
+        name: "",
+        rawPlate: "",
+        cleanPlate: "",
+        role: "",
+        zone: "PLAY",
+        inCurrentEvent: true,
+        isHistory: false,
+        note: ""
+      }, v, {
+        cleanPlate: buildCombinedCleanPlate(v.rawPlate || v.cleanPlate || ""),
+        inCurrentEvent: v.inCurrentEvent !== false
+      });
     }
 
     function saveLocalData() {
       localStorage.setItem(STORAGE_MASTER_KEY, JSON.stringify(masterList));
       localStorage.setItem(STORAGE_CHECKIN_KEY, JSON.stringify(checkInMap));
       updateStatsUI();
-      document.getElementById("tabBtnList").textContent = `📋 總名單 (${masterList.length})`;
     }
 
     function saveSettings() {
-      settings.operator = document.getElementById("operatorSelect").value;
       settings.vpPolicy = document.getElementById("vpPolicySelect").value;
       settings.vipCapacity = parseInt(document.getElementById("vipCapacityInput").value, 10) || 13;
       localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
-      document.getElementById("teacherBadge").textContent = "(" + settings.operator + ")";
       updateStatsUI();
       onSearchChange(document.getElementById("plateInput").value);
     }
 
+    function updateStatsUI() {
+      let vipCars = 0;
+      let playCars = 0;
+      Object.values(checkInMap).forEach(rec => {
+        if (rec.zone === "VIP") vipCars++;
+        else if (rec.zone === "PLAY") playCars++;
+        // rec.zone === 'TAXI' 代表搭的士/共乘，不計入佔用車位！
+      });
+      document.getElementById("vipCountText").textContent = `${vipCars} / ${settings.vipCapacity}`;
+      document.getElementById("playCountText").textContent = `${playCars} 架`;
+
+      const pendingCount = masterList.filter(v => v.inCurrentEvent !== false && !checkInMap[v.id]).length;
+      document.getElementById("tabBtnPending").textContent = `⏳ 未到 (${pendingCount})`;
+    }
+
     // =========================================================================
-    // 3. 車牌極速搜尋與分流顯示邏輯
+    // 3. 固定鍵盤極速搜尋與一人多車牌比對
     // =========================================================================
     function pressDigit(d) {
       const input = document.getElementById("plateInput");
@@ -889,11 +1103,17 @@
       onSearchChange(input.value);
     }
 
+    function focusAlphaKeyboard() {
+      const input = document.getElementById("plateInput");
+      input.focus();
+    }
+
     function clearSearch() {
       document.getElementById("plateInput").value = "";
       document.getElementById("resultContainer").innerHTML = "";
       document.getElementById("multiMatchContainer").innerHTML = "";
       document.getElementById("ocrCandidates").style.display = "none";
+      document.getElementById("idleQuickPanel").style.display = "block";
     }
 
     function quickFill(plateText) {
@@ -904,53 +1124,68 @@
     function selectSpecialGuest(vehicleId) {
       const v = masterList.find(item => item.id === vehicleId);
       if (!v) return;
+      document.getElementById("idleQuickPanel").style.display = "none";
       document.getElementById("multiMatchContainer").innerHTML = "";
-      renderMatchedCard(v);
+      renderMatchedCard(v, "");
     }
 
     function onSearchChange(rawVal) {
-      const q = normalizePlate(rawVal);
+      const q = normalizeSinglePlate(rawVal);
       const resBox = document.getElementById("resultContainer");
       const multiBox = document.getElementById("multiMatchContainer");
+      const idlePanel = document.getElementById("idleQuickPanel");
+
       resBox.innerHTML = "";
       multiBox.innerHTML = "";
 
-      if (!q) return;
+      if (!q) {
+        idlePanel.style.display = "block";
+        return;
+      }
+      idlePanel.style.display = "none";
 
-      // 精準相符優先，其次尾數/包含相符
-      const exact = masterList.find(v => v.cleanPlate && v.cleanPlate === q);
+      // 優先排序：是次活動名單優先，其次永久庫歷史記錄
+      const sortedMaster = [...masterList].sort((a, b) => (b.inCurrentEvent ? 1 : 0) - (a.inCurrentEvent ? 1 : 0));
+
+      // 1. 檢查一人多車牌是否有完全相符
+      const exact = sortedMaster.find(v => getCleanPlatesList(v).includes(q));
       if (exact) {
-        renderMatchedCard(exact);
+        renderMatchedCard(exact, q);
         return;
       }
 
-      const partials = masterList.filter(v => v.cleanPlate && v.cleanPlate.includes(q));
+      // 2. 檢查一人多車牌部分相符（如輸入尾數 6618）
+      const partials = sortedMaster.filter(v => getCleanPlatesList(v).some(cp => cp.includes(q)));
       if (partials.length === 1) {
-        renderMatchedCard(partials[0]);
+        renderMatchedCard(partials[0], q);
       } else if (partials.length > 1) {
         multiBox.innerHTML = partials.map(v => {
-          const zLabel = getEffectiveZone(v) === "VIP" ? "🌟 VIP位" : (getEffectiveZone(v) === "VP" ? "🔷 副校長" : "🅿️ 操場");
+          const z = getEffectiveZone(v);
+          const zLabel = z === "VIP" ? "🌟 VIP" : (z === "VP" ? "🔷 副校" : "🅿️ 操場");
+          const checkedTag = checkInMap[v.id] ? " <span style='color:#6ee7b7;font-size:12px;'>[已到]</span>" : "";
+          const histTag = !v.inCurrentEvent ? " <span style='color:#94a3b8;font-size:11px;'>[歷史庫]</span>" : "";
           return `
-            <div class="match-item" onclick='renderMatchedCardById("${v.id}")'>
+            <div class="match-item" onclick='renderMatchedCardById("${v.id}", "${q}")'>
               <div>
-                <strong style="font-size:18px;color:#fef08a;">${v.rawPlate}</strong>
-                <div style="font-size:14px;color:#e2e8f0;">${v.org} · ${v.name}</div>
+                <strong style="font-size:16px;color:#fef08a;">${v.rawPlate}</strong>${checkedTag}${histTag}
+                <div style="font-size:13.5px;color:#e2e8f0;">${v.org} · ${v.name}</div>
               </div>
-              <span style="font-weight:800;font-size:14px;">${zLabel} ➔</span>
+              <span style="font-weight:800;font-size:13.5px;">${zLabel} ➔</span>
             </div>
           `;
         }).join("");
       } else if (q.length >= 2) {
-        // 未登記車牌 ➔ 顯示即場分流及永久儲存卡
         renderUnknownCard(rawVal.trim().toUpperCase(), q);
       }
+      // 自動將中央顯示窗捲回頂部，下方數字鍵盤完全不動
+      document.getElementById("scanDisplayStage").scrollTop = 0;
     }
 
-    function renderMatchedCardById(id) {
+    function renderMatchedCardById(id, matchedQuery) {
       const v = masterList.find(x => x.id === id);
       if (v) {
         document.getElementById("multiMatchContainer").innerHTML = "";
-        renderMatchedCard(v);
+        renderMatchedCard(v, matchedQuery || "");
       }
     }
 
@@ -963,51 +1198,62 @@
       return v.zone;
     }
 
-    function renderMatchedCard(v) {
+    function renderMatchedCard(v, matchedQuery) {
       const effZone = getEffectiveZone(v);
       const checked = checkInMap[v.id];
       const resBox = document.getElementById("resultContainer");
 
       let cardClass = "result-play";
-      let badgeText = "已登記車輛";
+      let badgeText = v.inCurrentEvent ? "✅ 是次活動登記車輛" : "🗄️ 永久車牌庫記錄（未列於是次名單，但系統認得！）";
       let headline = "🅿️ 請往 操場 泊車";
 
       if (effZone === "VIP") {
         cardClass = "result-vip";
-        badgeText = v.isHistory ? "🌟 永久車牌庫歷史 VIP 記錄" : "🌟 貴賓 / 校長專用車位";
+        badgeText = v.inCurrentEvent ? "🌟 是次活動貴賓 / 校長專用" : "🌟 永久庫歷史 VIP（未預先報名，請引導往 VIP！）";
         headline = "🌟 請往 VIP 車位";
       } else if (effZone === "VP") {
         cardClass = "result-vp";
         badgeText = "🔷 副校長座駕（彈性分流）";
         headline = "請選擇 VIP位 或 操場";
-      } else if (v.isHistory) {
-        badgeText = "🗄️ 永久車牌庫歷史記錄";
       }
 
-      const alreadyHtml = checked
-        ? `<div class="already-in-alert">⚠️ 此車已於 ${checked.time} 由 ${checked.by} 放行（泊：${checked.zone === 'VIP' ? 'VIP位' : '操場'}）</div>`
-        : "";
+      const rawPlates = splitRawPlates(v.rawPlate);
+      let matchedSpecificPlate = rawPlates[0] || "";
+      const platesHtml = rawPlates.length > 0
+        ? `<div class="plates-wrap">` + rawPlates.map(rp => {
+            const isHit = matchedQuery && normalizeSinglePlate(rp).includes(matchedQuery);
+            if (isHit) matchedSpecificPlate = rp;
+            return `<span class="plate-tag ${isHit ? 'matched' : ''}">${rp}</span>`;
+          }).join("") + `</div>`
+        : `<div class="plates-wrap"><span class="plate-tag">待補登車牌</span></div>`;
 
-      // 若為未填車牌的主禮嘉賓或園車，提供即場綁定車牌輸入欄
-      const bindPlateHtml = (!v.cleanPlate || v.id.startsWith("SSY_"))
-        ? `<input type="text" id="bindPlateField" class="mini-input" placeholder="選填：輸入當日實際車牌以永久保存 (如 AB 1234)" value="${v.rawPlate.startsWith('園車') ? '' : v.rawPlate}" />`
-        : "";
+      let alreadyHtml = "";
+      if (checked) {
+        const modeTxt = checked.zone === "TAXI" ? "的士/共乘到場（不佔車位）" : (checked.zone === "VIP" ? "泊 VIP位" : "泊 操場");
+        alreadyHtml = `<div class="already-in-alert">⚠️ 已於 ${checked.time} 記錄到場（${modeTxt}）</div>`;
+      }
+
+      // 支援即場追加新車牌（一人多車牌或主禮嘉賓補登）
+      const appendPlatePlaceholder = rawPlates.length === 0
+        ? "選填：輸入當日座駕車牌以永久保存"
+        : "選填：如換乘新車，可輸入追加第 " + (rawPlates.length + 1) + " 個車牌";
 
       let buttonsHtml = "";
       if (effZone === "VP") {
         buttonsHtml = `
-          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP')">🌟 放行往 VIP位</button>
-          <button class="checkin-btn alt" onclick="confirmCheckIn('${v.id}', 'PLAY')">🅿️ 放行往 操場</button>
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP', '${matchedSpecificPlate}')">🌟 放行 VIP位</button>
+          <button class="checkin-btn alt" onclick="confirmCheckIn('${v.id}', 'PLAY', '${matchedSpecificPlate}')">🅿️ 放行 操場</button>
         `;
       } else if (effZone === "VIP") {
         buttonsHtml = `
-          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP')">✅ 確認放行 (VIP位)</button>
-          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'PLAY')">改泊操場</button>
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP', '${matchedSpecificPlate}')">✅ 確認入 VIP位</button>
+          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'TAXI', '的士/共乘')">🚕 的士到</button>
+          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'PLAY', '${matchedSpecificPlate}')">改操場</button>
         `;
       } else {
         buttonsHtml = `
-          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'PLAY')">✅ 確認放行 (操場)</button>
-          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'VIP')">改泊VIP</button>
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'PLAY', '${matchedSpecificPlate}')">✅ 確認入 操場</button>
+          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'VIP', '${matchedSpecificPlate}')">改泊VIP</button>
         `;
       }
 
@@ -1016,8 +1262,8 @@
           <div class="zone-badge">${badgeText}</div>
           <div class="zone-giant">${headline}</div>
           <div class="owner-info">${v.org} — ${v.name}</div>
-          <div class="plate-tag">${v.rawPlate || "待補登車牌"}</div>
-          ${bindPlateHtml}
+          ${platesHtml}
+          <input type="text" id="appendPlateField" class="mini-input" placeholder="${appendPlatePlaceholder}" style="text-transform:uppercase;" />
           ${alreadyHtml}
           <div class="action-row">
             ${buttonsHtml}
@@ -1028,16 +1274,37 @@
 
     function renderUnknownCard(displayPlate, cleanPlate) {
       const resBox = document.getElementById("resultContainer");
+      // 列出目前尚未到場的嘉賓，方便將新車牌直接綁定為某位校長/主禮嘉賓的第二車牌！
+      const unarrivedGuests = masterList.filter(v => v.inCurrentEvent !== false && !checkInMap[v.id]);
+      const bindOptions = unarrivedGuests.map(v =>
+        `<option value="${v.id}">${v.zone === 'VIP' ? '🌟' : '🅿️'} ${v.org} - ${v.name} ${v.rawPlate ? '(' + v.rawPlate + ')' : '(未填車牌)'}</option>`
+      ).join("");
+
       resBox.innerHTML = `
         <div class="result-card result-unknown">
-          <div class="zone-badge">⚠️ 未在預先登記名單內</div>
-          <div class="zone-giant">車牌：${displayPlate}</div>
-          <div style="font-size:14px;opacity:0.95;">可即場放行並<strong>永久儲存至車牌總庫</strong>，下次活動無需再登記：</div>
-          <input type="text" id="newGuestOrg" class="mini-input" placeholder="學校 / 機構名稱 (選填，如：友校 / 嘉賓)" />
-          <input type="text" id="newGuestName" class="mini-input" placeholder="姓名及職銜 (如：陳大文校長 / 李老師)" />
+          <div class="zone-badge">⚠️ 未登記車牌：${displayPlate}</div>
+
+          ${unarrivedGuests.length > 0 ? `
+            <div style="background:rgba(0,0,0,0.28);padding:8px 10px;border-radius:10px;margin-top:4px;">
+              <div style="font-size:12.5px;font-weight:800;color:#fde047;">🔗 情況 A：此車是名單內嘉賓的另一架車（一人多車牌）：</div>
+              <select id="bindExistingSelect" class="mini-select">
+                <option value="">-- 點此揀選未到嘉賓並追加車牌 --</option>
+                ${bindOptions}
+              </select>
+              <button class="checkin-btn" style="width:100%;margin-top:6px;padding:9px;font-size:14px;background:#fde047;" onclick="bindPlateToExistingGuest('${displayPlate}')">
+                ➕ 綁定為該嘉賓新車牌並放行
+              </button>
+            </div>
+          ` : ''}
+
+          <div style="font-size:12.5px;font-weight:800;margin-top:8px;">🆕 情況 B：全新臨時校長／嘉賓（放行並永久記住）：</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <input type="text" id="newGuestOrg" class="mini-input" placeholder="機構/學校 (如:友校)" />
+            <input type="text" id="newGuestName" class="mini-input" placeholder="姓名稱呼 (如:陳校長)" />
+          </div>
           <div class="action-row">
             <button class="checkin-btn" style="background:#fde047;color:#0f172a;" onclick="registerAndCheckIn('${displayPlate}', '${cleanPlate}', 'VIP')">
-              🌟 泊 VIP位 ＋ 永久儲存
+              🌟 泊 VIP ＋ 永久儲存
             </button>
             <button class="checkin-btn" onclick="registerAndCheckIn('${displayPlate}', '${cleanPlate}', 'PLAY')">
               🅿️ 泊 操場 ＋ 永久儲存
@@ -1048,48 +1315,79 @@
     }
 
     // =========================================================================
-    // 4. 確認進場及寫入永久車牌總庫
+    // 4. 確認進場、的士簽到、一人多車牌追加綁定
     // =========================================================================
     function getNowTimeStr() {
       const now = new Date();
       return String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
     }
 
-    function confirmCheckIn(vehicleId, assignedZone) {
+    function appendPlateToVehicleObj(v, newRawPlate) {
+      const cleanedNew = normalizeSinglePlate(newRawPlate);
+      if (!cleanedNew) return;
+      const existingRaw = splitRawPlates(v.rawPlate).filter(p => !p.startsWith("園車") || cleanedNew.startsWith("園車"));
+      const existingClean = existingRaw.map(normalizeSinglePlate);
+      if (!existingClean.includes(cleanedNew)) {
+        existingRaw.push(newRawPlate.trim().toUpperCase());
+        v.rawPlate = existingRaw.join(" / ");
+        v.cleanPlate = buildCombinedCleanPlate(v.rawPlate);
+      }
+    }
+
+    function confirmCheckIn(vehicleId, assignedZone, usedPlate) {
       const v = masterList.find(item => item.id === vehicleId);
       if (!v) return;
 
-      // 檢查是否有即場補登車牌
-      const bindInput = document.getElementById("bindPlateField");
-      if (bindInput && bindInput.value.trim() !== "") {
-        v.rawPlate = bindInput.value.trim().toUpperCase();
-        v.cleanPlate = normalizePlate(v.rawPlate);
+      const appendInput = document.getElementById("appendPlateField");
+      let finalPlateUsed = usedPlate || v.rawPlate || v.name;
+      if (appendInput && appendInput.value.trim() !== "") {
+        const added = appendInput.value.trim().toUpperCase();
+        appendPlateToVehicleObj(v, added);
+        finalPlateUsed = added;
       }
+
+      // 如屬歷史庫嘉賓臨時到場，自動將其加入是次活動名單方便統計
+      v.inCurrentEvent = true;
 
       const record = {
         id: v.id,
-        zone: assignedZone,
+        zone: assignedZone, // 'VIP' | 'PLAY' | 'TAXI'
         time: getNowTimeStr(),
-        by: settings.operator,
-        plate: v.rawPlate || v.name,
+        plate: assignedZone === "TAXI" ? "的士/共乘" : finalPlateUsed,
         owner: `${v.org} ${v.name}`
       };
 
       checkInMap[v.id] = record;
       saveLocalData();
-      pushActionToCloud({ action: "checkIn", vehicle: v, checkIn: record });
+      pushActionToCloud({ action: "upsertAndCheckIn", vehicle: v, checkIn: record });
 
-      showToast(`✅ 已放行：${v.name} ➔ ${assignedZone === 'VIP' ? 'VIP位' : '操場'}`);
+      const msgZone = assignedZone === "TAXI" ? "🚕 已到場 (不佔車位)" : (assignedZone === "VIP" ? "🌟 VIP位" : "🅿️ 操場");
+      showToast(`✅ ${v.name} ➔ ${msgZone}`);
       clearSearch();
+      renderPendingList();
       renderVehicleList();
     }
 
-    function registerAndCheckIn(rawPlate, cleanPlate, assignedZone) {
-      const org = (document.getElementById("newGuestOrg").value || "現場登記").trim();
-      const name = (document.getElementById("newGuestName").value || (assignedZone === "VIP" ? "VIP嘉賓/校長" : "教職員")).trim();
-      const newId = "CUSTOM_" + cleanPlate;
+    function bindPlateToExistingGuest(displayPlate) {
+      const sel = document.getElementById("bindExistingSelect");
+      if (!sel || !sel.value) {
+        showToast("⚠️ 請先在下拉選單揀選嘉賓！");
+        return;
+      }
+      const v = masterList.find(item => item.id === sel.value);
+      if (!v) return;
 
-      const newVehicle = {
+      appendPlateToVehicleObj(v, displayPlate);
+      const targetZone = getEffectiveZone(v) === "VIP" ? "VIP" : "PLAY";
+      confirmCheckIn(v.id, targetZone, displayPlate);
+    }
+
+    function registerAndCheckIn(rawPlate, cleanPlate, assignedZone) {
+      const org = (document.getElementById("newGuestOrg").value || "臨時到訪").trim();
+      const name = (document.getElementById("newGuestName").value || (assignedZone === "VIP" ? "VIP嘉賓/校長" : "教職員")).trim();
+      const newId = "CUSTOM_" + cleanPlate + "_" + Date.now().toString(36).slice(-3);
+
+      const newVehicle = ensureVehicleFields({
         id: newId,
         org: org,
         name: name,
@@ -1097,22 +1395,17 @@
         cleanPlate: cleanPlate,
         role: assignedZone === "VIP" ? "校長/嘉賓" : "老師/來賓",
         zone: assignedZone,
+        inCurrentEvent: true,
         isHistory: true,
         note: "門口即場新增永久記錄"
-      };
+      });
 
-      const existingIdx = masterList.findIndex(x => x.cleanPlate === cleanPlate);
-      if (existingIdx >= 0) {
-        masterList[existingIdx] = newVehicle;
-      } else {
-        masterList.unshift(newVehicle);
-      }
+      masterList.unshift(newVehicle);
 
       const record = {
         id: newId,
         zone: assignedZone,
         time: getNowTimeStr(),
-        by: settings.operator,
         plate: rawPlate,
         owner: `${org} ${name}`
       };
@@ -1121,39 +1414,370 @@
       saveLocalData();
       pushActionToCloud({ action: "upsertAndCheckIn", vehicle: newVehicle, checkIn: record });
 
-      showToast(`💾 已永久記住 ${rawPlate} 並放行往 ${assignedZone === 'VIP' ? 'VIP位' : '操場'}`);
+      showToast(`💾 已永久儲存 ${rawPlate} 並放行！`);
       clearSearch();
+      renderPendingList();
       renderVehicleList();
     }
 
-    function updateStatsUI() {
-      let vipIn = 0;
-      let playIn = 0;
-      Object.values(checkInMap).forEach(rec => {
-        if (rec.zone === "VIP") vipIn++;
-        else playIn++;
-      });
-      document.getElementById("vipCountText").textContent = `${vipIn} / ${settings.vipCapacity}`;
-      document.getElementById("playCountText").textContent = `${playIn} 架`;
+    function undoGuestCheckIn(vehicleId) {
+      const v = masterList.find(item => item.id === vehicleId);
+      delete checkInMap[vehicleId];
+      saveLocalData();
+      pushActionToCloud({ action: "undoCheckIn", id: vehicleId });
+      renderPendingList();
+      renderVehicleList();
+      showToast(`↩️ 已撤銷 ${v ? v.name : ""} 的到場狀態`);
     }
 
     // =========================================================================
-    // 5. 手機鏡頭拍攝與前端 OCR 車牌自動辨識
+    // 5. 分頁 2：⏳ 還未到的嘉賓列表與一鍵「的士/共乘已到」
+    // =========================================================================
+    function setPendingFilter(f) {
+      currentPendingFilter = f;
+      document.getElementById("pFilterAll").classList.toggle("active", f === "ALL");
+      document.getElementById("pFilterVIP").classList.toggle("active", f === "VIP");
+      document.getElementById("pFilterPLAY").classList.toggle("active", f === "PLAY");
+      renderPendingList();
+    }
+
+    function renderPendingList() {
+      const box = document.getElementById("pendingListContainer");
+      const keyword = (document.getElementById("pendingSearchInput")?.value || "").trim().toUpperCase();
+
+      const pendingItems = masterList.filter(v => {
+        if (v.inCurrentEvent === false) return false;
+        if (checkInMap[v.id]) return false;
+        const z = getEffectiveZone(v);
+        if (currentPendingFilter === "VIP" && z !== "VIP") return false;
+        if (currentPendingFilter === "PLAY" && z === "VIP") return false;
+        if (keyword) {
+          const hay = `${v.org} ${v.name} ${v.rawPlate} ${v.cleanPlate}`.toUpperCase();
+          if (!hay.includes(keyword)) return false;
+        }
+        return true;
+      });
+
+      // VIP 排最前，方便門口老師一眼掌握未到校長及主禮嘉賓
+      pendingItems.sort((a, b) => (getEffectiveZone(a) === "VIP" ? -1 : 1) - (getEffectiveZone(b) === "VIP" ? -1 : 1));
+
+      if (pendingItems.length === 0) {
+        box.innerHTML = `<div style="text-align:center;padding:30px 10px;color:#6ee7b7;font-weight:800;">🎉 太好了！此分類下所有嘉賓均已到場！</div>`;
+        return;
+      }
+
+      box.innerHTML = pendingItems.map(v => {
+        const z = getEffectiveZone(v);
+        const badgeCls = z === "VIP" ? "badge-vip" : (z === "VP" ? "badge-vp" : "badge-play");
+        const badgeTxt = z === "VIP" ? "🌟 VIP" : (z === "VP" ? "🔷 副校" : "🅿️ 操場");
+        const defaultCarZone = z === "VIP" ? "VIP" : "PLAY";
+        const carBtnLabel = defaultCarZone === "VIP" ? "🚗 駕車入VIP" : "🅿️ 駕車入操場";
+
+        return `
+          <div class="vehicle-row">
+            <div class="row-top">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                  <span class="badge-sm ${badgeCls}">${badgeTxt}</span>
+                  <strong style="font-size:16px;">${v.org} · ${v.name}</strong>
+                </div>
+                <div style="font-size:13.5px;color:#cbd5e1;">
+                  車牌：<strong style="color:#fef08a;">${v.rawPlate || "(未提供車牌)"}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button class="sm-btn taxi" onclick="confirmCheckIn('${v.id}', 'TAXI', '的士/共乘')">🚕 已到 (的士/共乘)</button>
+              <button class="sm-btn ${defaultCarZone === 'VIP' ? 'vip' : 'play'}" onclick="confirmCheckIn('${v.id}', '${defaultCarZone}', '${(splitRawPlates(v.rawPlate)[0] || '')}')">${carBtnLabel}</button>
+              <button class="sm-btn" onclick="openEditModal('${v.id}')">✏️ 改車牌</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // =========================================================================
+    // 6. 分頁 3：📋 名單加減（5分鐘前極速開關、新增、改多車牌）
+    // =========================================================================
+    function setListFilter(f) {
+      currentListFilter = f;
+      document.getElementById("lFilterACTIVE").classList.toggle("active", f === "ACTIVE");
+      document.getElementById("lFilterIN").classList.toggle("active", f === "IN");
+      document.getElementById("lFilterALL").classList.toggle("active", f === "ALL");
+      renderVehicleList();
+    }
+
+    function renderVehicleList() {
+      const box = document.getElementById("vehicleListContainer");
+      const keyword = (document.getElementById("listSearchInput")?.value || "").trim().toUpperCase();
+
+      const filtered = masterList.filter(v => {
+        const isChecked = !!checkInMap[v.id];
+        if (currentListFilter === "ACTIVE" && v.inCurrentEvent === false) return false;
+        if (currentListFilter === "IN" && !isChecked) return false;
+        if (keyword) {
+          const hay = `${v.org} ${v.name} ${v.rawPlate} ${v.cleanPlate}`.toUpperCase();
+          if (!hay.includes(keyword)) return false;
+        }
+        return true;
+      });
+
+      box.innerHTML = filtered.map(v => {
+        const rec = checkInMap[v.id];
+        const z = getEffectiveZone(v);
+        const badgeCls = z === "VIP" ? "badge-vip" : (z === "VP" ? "badge-vp" : "badge-play");
+        const badgeTxt = z === "VIP" ? "VIP位" : (z === "VP" ? "副校長" : "操場");
+
+        let recHtml = "";
+        if (rec) {
+          const modeLabel = rec.zone === "TAXI" ? "🚕 的士/共乘（不佔車位）" : (rec.zone === "VIP" ? "🌟 泊 VIP位" : "🅿️ 泊 操場");
+          recHtml = `<div style="font-size:12.5px;color:#6ee7b7;margin-top:4px;">✅ 已到 (${rec.time}) · ${modeLabel}</div>`;
+        }
+
+        return `
+          <div class="vehicle-row ${rec ? 'checked' : ''} ${v.inCurrentEvent === false ? 'inactive-event' : ''}">
+            <div class="row-top">
+              <div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">
+                  <span class="badge-sm ${badgeCls}">${badgeTxt}</span>
+                  <strong style="font-size:15.5px;">${v.org} · ${v.name}</strong>
+                  ${v.inCurrentEvent === false ? '<span style="font-size:11px;color:#94a3b8;">[未列是次活動]</span>' : ''}
+                </div>
+                <div style="font-size:13.5px;color:#cbd5e1;">
+                  車牌：<strong style="color:#fef08a;">${v.rawPlate || "(待補登)"}</strong>
+                </div>
+                ${recHtml}
+              </div>
+            </div>
+            <div class="row-actions">
+              <button class="sm-btn" onclick="openEditModal('${v.id}')">✏️ 編輯 / 加車牌</button>
+              <button class="sm-btn" onclick="toggleEventParticipation('${v.id}')">
+                ${v.inCurrentEvent !== false ? '➖ 移出是次活動' : '➕ 加入是次活動'}
+              </button>
+              ${rec
+                ? `<button class="sm-btn" style="color:#fca5a5;border-color:#7f1d1d;" onclick="undoGuestCheckIn('${v.id}')">↩️ 撤銷到場</button>`
+                : `<button class="sm-btn taxi" onclick="confirmCheckIn('${v.id}', 'TAXI', '的士/共乘')">🚕 的士已到</button>`
+              }
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function toggleEventParticipation(vehicleId) {
+      const v = masterList.find(item => item.id === vehicleId);
+      if (!v) return;
+      v.inCurrentEvent = (v.inCurrentEvent === false);
+      saveLocalData();
+      pushActionToCloud({ action: "upsertVehicle", vehicle: v });
+      renderPendingList();
+      renderVehicleList();
+      showToast(v.inCurrentEvent ? `✅ 已將 ${v.name} 加入是次活動` : `🗄️ 已移出是次活動（永久庫仍保留車牌）`);
+    }
+
+    // 彈出式新增／修改嘉賓視窗
+    function openEditModal(vehicleId) {
+      const modal = document.getElementById("editModal");
+      const delBtn = document.getElementById("deleteVehicleBtn");
+      if (vehicleId) {
+        const v = masterList.find(item => item.id === vehicleId);
+        if (!v) return;
+        document.getElementById("modalTitle").textContent = "✏️ 編輯嘉賓資料／新增多車牌";
+        document.getElementById("editIdInput").value = v.id;
+        document.getElementById("editOrgInput").value = v.org;
+        document.getElementById("editNameInput").value = v.name;
+        document.getElementById("editPlatesInput").value = v.rawPlate;
+        document.getElementById("editRoleInput").value = v.role || "";
+        document.getElementById("editZoneSelect").value = v.zone || "VIP";
+        document.getElementById("editActiveSelect").value = v.inCurrentEvent !== false ? "YES" : "NO";
+        delBtn.style.display = "block";
+      } else {
+        document.getElementById("modalTitle").textContent = "➕ 臨時新增嘉賓／車輛";
+        document.getElementById("editIdInput").value = "";
+        document.getElementById("editOrgInput").value = "";
+        document.getElementById("editNameInput").value = "";
+        document.getElementById("editPlatesInput").value = "";
+        document.getElementById("editRoleInput").value = "嘉賓/校長";
+        document.getElementById("editZoneSelect").value = "VIP";
+        document.getElementById("editActiveSelect").value = "YES";
+        delBtn.style.display = "none";
+      }
+      modal.style.display = "flex";
+    }
+
+    function closeEditModal() {
+      document.getElementById("editModal").style.display = "none";
+    }
+
+    function saveModalVehicle() {
+      const existingId = document.getElementById("editIdInput").value;
+      const org = (document.getElementById("editOrgInput").value || "嘉賓").trim();
+      const name = (document.getElementById("editNameInput").value || "").trim();
+      if (!name) {
+        showToast("⚠️ 請填寫嘉賓姓名！");
+        return;
+      }
+      const rawPlatesFormatted = splitRawPlates(document.getElementById("editPlatesInput").value).join(" / ");
+      const role = (document.getElementById("editRoleInput").value || "").trim();
+      const zone = document.getElementById("editZoneSelect").value;
+      const inCurrentEvent = document.getElementById("editActiveSelect").value === "YES";
+
+      let targetObj;
+      if (existingId) {
+        targetObj = masterList.find(x => x.id === existingId);
+        if (targetObj) {
+          targetObj.org = org;
+          targetObj.name = name;
+          targetObj.rawPlate = rawPlatesFormatted;
+          targetObj.cleanPlate = buildCombinedCleanPlate(rawPlatesFormatted);
+          targetObj.role = role;
+          targetObj.zone = zone;
+          targetObj.inCurrentEvent = inCurrentEvent;
+        }
+      } else {
+        targetObj = ensureVehicleFields({
+          id: "MANUAL_" + Date.now().toString(36),
+          org,
+          name,
+          rawPlate: rawPlatesFormatted,
+          cleanPlate: buildCombinedCleanPlate(rawPlatesFormatted),
+          role,
+          zone,
+          inCurrentEvent,
+          isHistory: true,
+          note: "手動新增"
+        });
+        masterList.unshift(targetObj);
+      }
+
+      saveLocalData();
+      pushActionToCloud({ action: "upsertVehicle", vehicle: targetObj });
+      closeEditModal();
+      renderPendingList();
+      renderVehicleList();
+      showToast(`💾 已儲存 ${targetObj.name} 並同步至 Google Sheet`);
+    }
+
+    function deleteModalVehicle() {
+      const existingId = document.getElementById("editIdInput").value;
+      if (!existingId) return;
+      if (!confirm("確定要從永久車牌庫徹底刪除這位嘉賓嗎？（如只想暫時移出今日活動，請選「否（僅保留於永久庫）」）")) return;
+
+      masterList = masterList.filter(x => x.id !== existingId);
+      delete checkInMap[existingId];
+      saveLocalData();
+      pushActionToCloud({ action: "deleteVehicle", id: existingId });
+      closeEditModal();
+      renderPendingList();
+      renderVehicleList();
+      showToast("🗑️ 已刪除記錄並同步");
+    }
+
+    // =========================================================================
+    // 7. 分頁 4：🤖 AI 分析名單一鍵批次匯入
+    // =========================================================================
+    function copyAiPromptTemplate() {
+      const promptText = `請幫我將以下學校活動泊車／嘉賓名單整理為純文字 CSV（不要加標題列，每行一位嘉賓），欄位順序為：
+機構或學校,姓名稱呼,車牌號碼(如有多個車牌請用 / 分隔，無車牌則留空),職銜,分流區域(校長/校監/校董/主禮填 VIP，老師填 PLAY，副校長填 VP)
+
+範例輸出：
+主禮嘉賓,滕錦光教授,,主禮嘉賓,VIP
+可立,黎洛琪校長,YM 6618 / AB 1234,校長,VIP
+可風,陳廣鴻老師,ZW1587,老師,PLAY`;
+
+      navigator.clipboard.writeText(promptText).then(() => {
+        showToast("📋 已複製 AI 指令！貼給 AI 分析名單即可");
+      }).catch(() => {
+        prompt("請複製以下指令交給 AI：", promptText);
+      });
+    }
+
+    function runAiBatchImport() {
+      const rawText = document.getElementById("aiImportTextarea").value.trim();
+      if (!rawText) {
+        showToast("⚠️ 請先貼上名單內容！");
+        return;
+      }
+      const mode = document.getElementById("aiImportMode").value;
+      const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+      if (mode === "REPLACE_EVENT") {
+        masterList.forEach(v => { v.inCurrentEvent = false; });
+        checkInMap = {};
+      }
+
+      let importedCount = 0;
+      lines.forEach(line => {
+        if (line.startsWith("機構") || line.toLowerCase().startsWith("org")) return;
+        const parts = line.split(/[,\t，]+/).map(s => s.trim());
+        if (parts.length < 2) return;
+
+        const [org, name, plateRaw = "", role = "", zoneRaw = ""] = parts;
+        const upperZone = zoneRaw.toUpperCase();
+        const zone = upperZone.includes("VIP") ? "VIP" : (upperZone.includes("VP") || role.includes("副校長") ? "VP" : (role.match(/校長|校監|校董|主席|總監|主禮/) ? "VIP" : "PLAY"));
+
+        const incomingPlates = splitRawPlates(plateRaw);
+        const incomingClean = incomingPlates.map(normalizeSinglePlate).filter(Boolean);
+
+        // 嘗試在永久庫尋找同名嘉賓或相同車牌，自動合併車牌！
+        let existing = masterList.find(v =>
+          (v.name === name && v.org === org) ||
+          (incomingClean.length > 0 && getCleanPlatesList(v).some(cp => incomingClean.includes(cp)))
+        );
+
+        if (existing) {
+          existing.org = org || existing.org;
+          existing.name = name || existing.name;
+          existing.role = role || existing.role;
+          existing.zone = zone;
+          existing.inCurrentEvent = true;
+          incomingPlates.forEach(p => appendPlateToVehicleObj(existing, p));
+        } else {
+          const formattedPlates = incomingPlates.join(" / ");
+          masterList.push(ensureVehicleFields({
+            id: "AI_" + Date.now().toString(36) + "_" + importedCount,
+            org: org || "嘉賓",
+            name: name,
+            rawPlate: formattedPlates,
+            cleanPlate: buildCombinedCleanPlate(formattedPlates),
+            role: role || (zone === "VIP" ? "VIP嘉賓" : "老師"),
+            zone: zone,
+            inCurrentEvent: true,
+            isHistory: false,
+            note: "AI批次匯入"
+          }));
+        }
+        importedCount++;
+      });
+
+      saveLocalData();
+      pushActionToCloud({
+        action: "replaceMasterAndReset",
+        masterList: masterList,
+        clearCheckIns: mode === "REPLACE_EVENT"
+      });
+
+      document.getElementById("aiImportTextarea").value = "";
+      renderPendingList();
+      renderVehicleList();
+      showToast(`🎉 成功匯入 ${importedCount} 位嘉賓並同步至 Google Sheet！`);
+      switchTab("list");
+    }
+
+    // =========================================================================
+    // 8. 手機鏡頭拍攝與前端 OCR 車牌辨識
     // =========================================================================
     async function ensureTesseract() {
       if (tesseractLoaded && window.Tesseract) return true;
       const statusEl = document.getElementById("ocrStatus");
       statusEl.style.display = "block";
-      statusEl.textContent = "⏳ 首次載入車牌光學辨識引擎 (約2秒)...";
+      statusEl.textContent = "⏳ 首次載入車牌辨識引擎 (約2秒)...";
 
       return new Promise((resolve, reject) => {
         const script = document.createElement("script");
         script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-        script.onload = () => {
-          tesseractLoaded = true;
-          resolve(true);
-        };
-        script.onerror = () => reject(new Error("無法載入 OCR 元件，請檢查網絡或改用下方數字掣快搜"));
+        script.onload = () => { tesseractLoaded = true; resolve(true); };
+        script.onerror = () => reject(new Error("無法載入 OCR，請直接按下方數字鍵盤"));
         document.head.appendChild(script);
       });
     }
@@ -1162,7 +1786,6 @@
       const modal = document.getElementById("cameraModal");
       const video = document.getElementById("videoPreview");
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // 若以本機 file:// 開啟被瀏覽器限制即時串流，自動切換至手機原生相機
         document.getElementById("photoInput").click();
         return;
       }
@@ -1173,6 +1796,7 @@
         });
         video.srcObject = videoStream;
         modal.style.display = "block";
+        document.getElementById("scanDisplayStage").scrollTop = 0;
       } catch (err) {
         document.getElementById("photoInput").click();
       }
@@ -1189,9 +1813,7 @@
     async function captureFromVideo() {
       const video = document.getElementById("videoPreview");
       if (!video.videoWidth) return;
-
       const canvas = document.getElementById("captureCanvas");
-      // 只擷取畫面中央黃框區域，大幅提升 OCR 速度與準確度
       const cropW = video.videoWidth * 0.8;
       const cropH = video.videoHeight * 0.36;
       const startX = (video.videoWidth - cropW) / 2;
@@ -1210,12 +1832,10 @@
     function handlePhotoFile(event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
-
       const img = new Image();
       img.onload = async () => {
         const canvas = document.getElementById("captureCanvas");
-        const maxW = 1000;
-        const scale = Math.min(1, maxW / img.width);
+        const scale = Math.min(1, 1000 / img.width);
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         const ctx = canvas.getContext("2d");
@@ -1231,40 +1851,27 @@
       const statusEl = document.getElementById("ocrStatus");
       const candBox = document.getElementById("ocrCandidates");
       candBox.style.display = "none";
-
       try {
         await ensureTesseract();
         statusEl.style.display = "block";
-        statusEl.textContent = "🔍 正在分析車牌號碼...";
-
+        statusEl.textContent = "🔍 正在辨識車牌號碼...";
         const { data: { text } } = await Tesseract.recognize(canvasElement, "eng");
         statusEl.style.display = "none";
 
-        const cleanedLines = text
-          .toUpperCase()
-          .replace(/[^A-Z0-9\s]/g, " ")
-          .split(/\s+/)
-          .filter(t => t.length >= 2);
-
-        // 嘗試組合香港標準車牌格式 (例如 YM 6618 -> YM6618) 或擷取純數字
+        const cleanedLines = text.toUpperCase().replace(/[^A-Z0-9\s]/g, " ").split(/\s+/).filter(t => t.length >= 2);
         const joinedText = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        const hkPlateRegex = /[A-Z]{1,2}\d{1,4}/g;
-        const plateMatches = joinedText.match(hkPlateRegex) || [];
-
+        const plateMatches = joinedText.match(/[A-Z]{1,2}\d{1,4}/g) || [];
         const candidates = [...new Set([...plateMatches, ...cleanedLines])].slice(0, 5);
 
         if (candidates.length > 0) {
-          const best = candidates[0];
-          document.getElementById("plateInput").value = best;
-          onSearchChange(best);
-
+          document.getElementById("plateInput").value = candidates[0];
+          onSearchChange(candidates[0]);
           if (candidates.length > 1) {
             candBox.style.display = "flex";
-            candBox.innerHTML = `<span style="font-size:12px;color:#94a3b8;align-self:center;">其他辨識結果：</span>` +
-              candidates.map(c => `<button class="chip" onclick="quickFill('${c}')">${c}</button>`).join("");
+            candBox.innerHTML = candidates.map(c => `<button class="chip" onclick="quickFill('${c}')">${c}</button>`).join("");
           }
         } else {
-          showToast("⚠️ 未能清晰認出車牌，請直接按數字掣輸入尾數");
+          showToast("⚠️ 影像反光或模糊，請直接按下方數字掣");
         }
       } catch (err) {
         statusEl.style.display = "none";
@@ -1273,124 +1880,98 @@
     }
 
     // =========================================================================
-    // 6. 總名單檢視、篩選與匯出
+    // 9. 分頁切換與 Google Sheet 雲端直連同步
     // =========================================================================
-    function setListFilter(f) {
-      currentFilter = f;
-      renderVehicleList();
-    }
-
-    function renderVehicleList() {
-      const box = document.getElementById("vehicleListContainer");
-      const filtered = masterList.filter(v => {
-        const isChecked = !!checkInMap[v.id];
-        const z = getEffectiveZone(v);
-        if (currentFilter === "VIP") return z === "VIP";
-        if (currentFilter === "PLAY") return z === "PLAY" || z === "VP";
-        if (currentFilter === "IN") return isChecked;
-        if (currentFilter === "PENDING") return !isChecked;
-        return true;
-      });
-
-      box.innerHTML = filtered.map(v => {
-        const rec = checkInMap[v.id];
-        const z = getEffectiveZone(v);
-        const badgeCls = z === "VIP" ? "badge-vip" : (z === "VP" ? "badge-vp" : "badge-play");
-        const badgeTxt = z === "VIP" ? "VIP位" : (z === "VP" ? "副校長" : "操場");
-
-        return `
-          <div class="vehicle-row ${rec ? 'checked' : ''}" onclick="jumpToVehicle('${v.id}')">
-            <div>
-              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-                <span class="badge-sm ${badgeCls}">${badgeTxt}</span>
-                <strong style="font-size:16px;">${v.org} · ${v.name}</strong>
-              </div>
-              <div style="font-size:14px;color:#cbd5e1;">
-                車牌：<strong style="color:#fef08a;">${v.rawPlate || "(待補登)"}</strong>
-                ${v.isHistory ? '<span style="color:#38bdf8;font-size:12px;">[新增永久記錄]</span>' : ''}
-              </div>
-              ${rec ? `<div style="font-size:12px;color:#6ee7b7;margin-top:3px;">✅ 已入 (${rec.zone === 'VIP' ? 'VIP' : '操場'}) · ${rec.time} · ${rec.by}</div>` : ''}
-            </div>
-            <div style="font-size:18px;color:#94a3b8;">➔</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function jumpToVehicle(id) {
-      switchTab("scan");
-      renderMatchedCardById(id);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
     function switchTab(tab) {
-      document.getElementById("viewScan").style.display = tab === "scan" ? "block" : "none";
+      document.getElementById("viewScan").style.display = tab === "scan" ? "flex" : "none";
+      document.getElementById("viewPending").style.display = tab === "pending" ? "block" : "none";
       document.getElementById("viewList").style.display = tab === "list" ? "block" : "none";
       document.getElementById("viewSettings").style.display = tab === "settings" ? "block" : "none";
 
       document.getElementById("tabBtnScan").classList.toggle("active", tab === "scan");
+      document.getElementById("tabBtnPending").classList.toggle("active", tab === "pending");
       document.getElementById("tabBtnList").classList.toggle("active", tab === "list");
       document.getElementById("tabBtnSettings").classList.toggle("active", tab === "settings");
+
+      if (tab === "pending") renderPendingList();
       if (tab === "list") renderVehicleList();
     }
 
-    // =========================================================================
-    // 7. 雲端 4 人即時同步 (支援 Google Apps Script 內嵌或外部 API)
-    // =========================================================================
     function saveGasUrlAndSync() {
-      settings.gasUrl = document.getElementById("gasUrlInput").value.trim();
+      settings.gasUrl = document.getElementById("gasUrlInput").value.trim() || DEFAULT_GAS_URL;
       localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
       syncWithCloud(true);
     }
 
     function manualSync() {
-      if (isHostedInGas || settings.gasUrl) {
-        syncWithCloud(true);
-      } else {
-        showToast("📱 目前為單機模式（可在「同步/管理」連接 Google Sheet）");
-      }
+      syncWithCloud(true);
     }
 
     function syncWithCloud(showNotification) {
       const badge = document.getElementById("syncStatusBadge");
+      const targetUrl = settings.gasUrl || DEFAULT_GAS_URL;
+
       if (isHostedInGas) {
         google.script.run
           .withSuccessHandler(res => applyCloudState(res, showNotification))
-          .withFailureHandler(() => { badge.textContent = "⚠️ 同步重試中"; })
+          .withFailureHandler(() => { badge.textContent = "⚠️ 離線快取"; })
           .getParkingState(JSON.stringify(masterList));
-      } else if (settings.gasUrl) {
-        fetch(settings.gasUrl + "?api=1&t=" + Date.now())
+      } else if (targetUrl) {
+        fetch(targetUrl + "?api=1&t=" + Date.now())
           .then(r => r.json())
-          .then(res => applyCloudState(res, showNotification))
-          .catch(() => { badge.textContent = "⚠️ 離線快取中"; });
+          .then(res => {
+            // 若 Google Sheet 尚無初始資料，自動將 27 架預載名單直接寫入 Google Sheet！
+            if (res && res.ok && (!res.masterList || res.masterList.length === 0) && !hasSeededCloudOnce) {
+              hasSeededCloudOnce = true;
+              forcePushAllMasterToSheet();
+              return;
+            }
+            applyCloudState(res, showNotification);
+          })
+          .catch(() => {
+            badge.className = "sync-dot";
+            badge.textContent = "📱 本機快取";
+          });
       }
+    }
+
+    function forcePushAllMasterToSheet() {
+      pushActionToCloud({
+        action: "replaceMasterAndReset",
+        masterList: masterList,
+        clearCheckIns: false
+      });
+      showToast("📤 已將完整名單寫入 Google Sheet！");
     }
 
     function applyCloudState(res, showNotification) {
       if (!res || !res.ok) return;
       const badge = document.getElementById("syncStatusBadge");
-      badge.className = "sync-badge online";
-      badge.textContent = "🟢 4人雲端同步中";
+      badge.className = "sync-dot online";
+      badge.textContent = "🟢 已連Sheet";
 
       if (Array.isArray(res.masterList) && res.masterList.length > 0) {
-        masterList = res.masterList;
+        masterList = res.masterList.map(ensureVehicleFields);
       }
       if (res.checkInMap) {
         checkInMap = res.checkInMap;
       }
       saveLocalData();
+      renderPendingList();
       renderVehicleList();
-      if (showNotification) showToast("🔄 已同步最新車位及永久車牌庫！");
+      if (showNotification) showToast("🔄 已與 Google Sheet 同步最新狀態！");
     }
 
     function pushActionToCloud(payload) {
       const payloadStr = JSON.stringify(payload);
+      const targetUrl = settings.gasUrl || DEFAULT_GAS_URL;
+
       if (isHostedInGas) {
         google.script.run
           .withSuccessHandler(res => applyCloudState(res, false))
           .handleClientAction(payloadStr);
-      } else if (settings.gasUrl) {
-        fetch(settings.gasUrl, {
+      } else if (targetUrl) {
+        fetch(targetUrl, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: payloadStr
@@ -1402,18 +1983,20 @@
     }
 
     function resetCheckInsOnly() {
-      if (!confirm("確定要清空「今日進場狀態」以準備下次新活動嗎？\n（所有預載及新增的校長／嘉賓永久車牌記錄將會100%保留！）")) return;
+      if (!confirm("確定要清空「今日到場記錄」嗎？\n（所有永久車牌庫及是次活動名單設定會100%保留）")) return;
       checkInMap = {};
       saveLocalData();
       pushActionToCloud({ action: "resetCheckIns" });
+      renderPendingList();
       renderVehicleList();
-      showToast("✨ 已重設進場狀態，永久車牌總庫已完整保留！");
+      showToast("✨ 已清空今日到場記錄！");
     }
 
     function exportMasterCsv() {
-      const headers = ["機構/學校", "姓名", "車牌", "標準化車牌", "職銜", "預設分流", "今日進場狀態", "實際泊位", "進場時間", "放行老師"];
+      const headers = ["機構/學校", "姓名", "車牌(支援多車牌)", "標準化車牌", "職銜", "預設分流", "參與是次活動", "今日狀態", "到場方式/泊位", "到場時間"];
       const rows = masterList.map(v => {
         const rec = checkInMap[v.id];
+        const zoneTxt = rec ? (rec.zone === "TAXI" ? "的士/共乘" : (rec.zone === "VIP" ? "VIP位" : "操場")) : "";
         return [
           v.org,
           v.name,
@@ -1421,10 +2004,10 @@
           v.cleanPlate,
           v.role,
           v.zone === "VIP" ? "VIP位" : (v.zone === "VP" ? "副校長彈性" : "操場"),
-          rec ? "已進場" : "未到場",
-          rec ? (rec.zone === "VIP" ? "VIP位" : "操場") : "",
-          rec ? rec.time : "",
-          rec ? rec.by : ""
+          v.inCurrentEvent !== false ? "YES" : "NO",
+          rec ? "已到場" : "未到場",
+          zoneTxt,
+          rec ? rec.time : ""
         ].map(cell => `"${String(cell || "").replace(/"/g, '""')}"`).join(",");
       });
 
@@ -1433,7 +2016,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `學校永久車牌庫及進場記錄_${new Date().toISOString().slice(0,10)}.csv`;
+      a.download = `學校車牌總庫及到場記錄_${new Date().toISOString().slice(0,10)}.csv`;
       a.click();
     }
 
@@ -1442,158 +2025,10 @@
       el.textContent = msg;
       el.style.display = "block";
       clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => { el.style.display = "none"; }, 2800);
+      window._toastTimer = setTimeout(() => { el.style.display = "none"; }, 2600);
     }
 
     initApp();
   </script>
 </body>
 </html>
-
-
-第二部分：Google Sheet 雲端同步後端（Code.gs 選配）
-
-若希望 4 位老師手機即時同步進場數量，並將新登記的校長或嘉賓車牌自動寫入 Google Sheet 兩個分頁（永久車牌總庫 與 當日進場記錄），請將以下程式碼貼入 Google Sheet 的 Apps Script (Code.gs) 中：
-
-const MASTER_SHEET_NAME = "永久車牌總庫";
-const CHECKIN_SHEET_NAME = "當日進場記錄";
-
-function doGet(e) {
-  if (e && e.parameter && e.parameter.api === "1") {
-    const state = getParkingState(null);
-    return ContentService
-      .createTextOutput(JSON.stringify(state))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-  return HtmlService.createHtmlOutputFromFile("Index")
-    .setTitle("學校車牌掃描及極速分流系統")
-    .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no")
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function doPost(e) {
-  const result = handleClientAction(e.postData.contents);
-  return ContentService
-    .createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function ensureSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let masterSheet = ss.getSheetByName(MASTER_SHEET_NAME);
-  if (!masterSheet) {
-    masterSheet = ss.insertSheet(MASTER_SHEET_NAME);
-    masterSheet.appendRow(["ID", "機構/學校", "姓名", "原始車牌", "標準化車牌", "職銜", "預設分流", "是否歷史新增", "備註"]);
-  }
-  let checkInSheet = ss.getSheetByName(CHECKIN_SHEET_NAME);
-  if (!checkInSheet) {
-    checkInSheet = ss.insertSheet(CHECKIN_SHEET_NAME);
-    checkInSheet.appendRow(["ID", "車牌", "車主", "實際泊位", "進場時間", "放行老師", "時間戳記"]);
-  }
-  return { masterSheet, checkInSheet };
-}
-
-function getParkingState(initialMasterJson) {
-  const lock = LockService.getScriptLock();
-  lock.tryLock(5000);
-  try {
-    const { masterSheet, checkInSheet } = ensureSheets();
-
-    // 若試算表尚無預載名單，自動寫入前端傳來的 27 架初始車輛
-    if (masterSheet.getLastRow() <= 1 && initialMasterJson) {
-      const initArr = JSON.parse(initialMasterJson);
-      const rows = initArr.map(v => [
-        v.id, v.org, v.name, v.rawPlate, v.cleanPlate, v.role, v.zone, v.isHistory ? "YES" : "NO", v.note || ""
-      ]);
-      if (rows.length > 0) {
-        masterSheet.getRange(2, 1, rows.length, 9).setValues(rows);
-      }
-    }
-
-    const masterList = [];
-    if (masterSheet.getLastRow() > 1) {
-      const mData = masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, 9).getValues();
-      mData.forEach(r => {
-        if (!r[0]) return;
-        masterList.push({
-          id: String(r[0]),
-          org: String(r[1]),
-          name: String(r[2]),
-          rawPlate: String(r[3]),
-          cleanPlate: String(r[4]),
-          role: String(r[5]),
-          zone: String(r[6]),
-          isHistory: String(r[7]) === "YES",
-          note: String(r[8] || "")
-        });
-      });
-    }
-
-    const checkInMap = {};
-    if (checkInSheet.getLastRow() > 1) {
-      const cData = checkInSheet.getRange(2, 1, checkInSheet.getLastRow() - 1, 6).getValues();
-      cData.forEach(r => {
-        if (!r[0]) return;
-        checkInMap[String(r[0])] = {
-          id: String(r[0]),
-          plate: String(r[1]),
-          owner: String(r[2]),
-          zone: String(r[3]),
-          time: String(r[4]),
-          by: String(r[5])
-        };
-      });
-    }
-
-    return { ok: true, masterList, checkInMap };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-function handleClientAction(payloadStr) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    const payload = JSON.parse(payloadStr);
-    const { masterSheet, checkInSheet } = ensureSheets();
-
-    if (payload.action === "resetCheckIns") {
-      if (checkInSheet.getLastRow() > 1) {
-        checkInSheet.deleteRows(2, checkInSheet.getLastRow() - 1);
-      }
-      return getParkingState(null);
-    }
-
-    if (payload.vehicle) {
-      const v = payload.vehicle;
-      let foundRow = -1;
-      if (masterSheet.getLastRow() > 1) {
-        const ids = masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, 1).getValues();
-        for (let i = 0; i < ids.length; i++) {
-          if (String(ids[i][0]) === String(v.id)) {
-            foundRow = i + 2;
-            break;
-          }
-        }
-      }
-      const rowValues = [
-        v.id, v.org, v.name, v.rawPlate, v.cleanPlate, v.role, v.zone, v.isHistory ? "YES" : "NO", v.note || ""
-      ];
-      if (foundRow > 0) {
-        masterSheet.getRange(foundRow, 1, 1, 9).setValues([rowValues]);
-      } else {
-        masterSheet.appendRow(rowValues);
-      }
-    }
-
-    if (payload.checkIn) {
-      const c = payload.checkIn;
-      checkInSheet.appendRow([c.id, c.plate, c.owner, c.zone, c.time, c.by, new Date()]);
-    }
-
-    return getParkingState(null);
-  } finally {
-    lock.releaseLock();
-  }
-}
