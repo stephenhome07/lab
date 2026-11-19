@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>學校車牌掃描及極速分流系統</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --vip-bg: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+      --vip-border: #fde68a;
+      --play-bg: linear-gradient(135deg, #065f46 0%, #059669 50%, #10b981 100%);
+      --play-border: #a7f3d0;
+      --vp-bg: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%);
+      --vp-border: #bfdbfe;
+      --unknown-bg: linear-gradient(135deg, #9f1239 0%, #e11d48 100%);
+      --unknown-border: #fecdd3;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 32px;
+    }
+
+    /* Top Status Bar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+
+    .topbar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .event-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sync-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: #334155;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .sync-badge.online {
+      background: #065f46;
+      color: #6ee7b7;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stat-pill {
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-weight: 800;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .stat-vip {
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.5);
+      color: #fcd34d;
+    }
+
+    .stat-play {
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: #6ee7b7;
+    }
+
+    .icon-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 11px;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    /* Navigation Tabs */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      background: var(--card);
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 9px 4px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+
+    /* Camera & OCR Section */
+    .scan-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .cam-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 10px;
+      border-radius: 12px;
+      border: 1px solid #60a5fa;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: white;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .cam-btn.secondary {
+      background: var(--card);
+      border-color: var(--border);
+      box-shadow: none;
+      font-size: 14px;
+    }
+
+    #cameraModal {
+      display: none;
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 2px solid #3b82f6;
+      position: relative;
+    }
+
+    #videoPreview {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .plate-guide {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -65%);
+      width: 76%;
+      height: 74px;
+      border: 3px solid #facc15;
+      border-radius: 10px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
+      pointer-events: none;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .plate-guide span {
+      background: #facc15;
+      color: #000;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 1px 8px;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .cam-controls {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      background: #111827;
+    }
+
+    .ocr-status {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #1e3a8a;
+      color: #dbeafe;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    /* Search Input Box */
+    .search-box {
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 88px 14px 16px;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-radius: 14px;
+      border: 2px solid #475569;
+      background: #020617;
+      color: #f8fafc;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .search-input::placeholder {
+      font-size: 15px;
+      letter-spacing: 0;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #334155;
+      color: #f8fafc;
+      border: none;
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Special Quick Chips */
+    .quick-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .quick-chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+      flex: 0 0 auto;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      padding: 7px 11px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chip.gold {
+      border-color: #f59e0b;
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    /* Result Banner Card */
+    .result-card {
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+      animation: popIn 0.15s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.97); opacity: 0.8; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .result-vip {
+      background: var(--vip-bg);
+      border: 3px solid var(--vip-border);
+      color: #fff;
+    }
+
+    .result-play {
+      background: var(--play-bg);
+      border: 3px solid var(--play-border);
+      color: #fff;
+    }
+
+    .result-vp {
+      background: var(--vp-bg);
+      border: 3px solid var(--vp-border);
+      color: #fff;
+    }
+
+    .result-unknown {
+      background: var(--unknown-bg);
+      border: 3px solid var(--unknown-border);
+      color: #fff;
+    }
+
+    .zone-badge {
+      display: inline-block;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .zone-giant {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1.15;
+      margin: 4px 0 8px 0;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .owner-info {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .plate-tag {
+      display: inline-block;
+      background: #fef08a;
+      color: #0f172a;
+      font-weight: 900;
+      font-size: 20px;
+      padding: 3px 12px;
+      border-radius: 8px;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+      border: 2px solid #0f172a;
+    }
+
+    .already-in-alert {
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fde047;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .checkin-btn {
+      flex: 1;
+      min-width: 140px;
+      padding: 14px 12px;
+      border-radius: 12px;
+      border: none;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+
+    .checkin-btn.alt {
+      background: rgba(15, 23, 42, 0.75);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    /* Multiple Partial Matches List */
+    .multi-matches {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .match-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    /* Giant Numeric Numpad */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .num-key {
+      background: var(--card);
+      border: 1px solid #475569;
+      color: var(--text);
+      font-size: 26px;
+      font-weight: 800;
+      padding: 15px 0;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .num-key:active {
+      background: #3b82f6;
+      transform: scale(0.97);
+    }
+
+    .num-key.fn {
+      font-size: 16px;
+      background: #334155;
+    }
+
+    /* Forms inside cards */
+    .mini-input {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.4);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+    .mini-input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* Full List & Logs View */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      overflow-x: auto;
+    }
+
+    .vehicle-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vehicle-row.checked {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .badge-sm {
+      font-size: 12px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    .badge-vip { background: #f59e0b; color: #000; }
+    .badge-play { background: #10b981; color: #000; }
+    .badge-vp { background: #60a5fa; color: #000; }
+
+    /* Settings Card */
+    .settings-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .settings-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #f8fafc;
+    }
+
+    .label-sm {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      margin-top: 10px;
+    }
+
+    .dark-input, .dark-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 14px;
+    }
+
+    .btn-block {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-blue { background: #2563eb; color: #fff; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-red { background: #dc2626; color: #fff; }
+    .btn-slate { background: #334155; color: #fff; }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #10b981;
+      color: #022c22;
+      font-weight: 900;
+      padding: 12px 22px;
+      border-radius: 99px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部即時車位統計欄 -->
+  <div class="topbar">
+    <div class="topbar-header">
+      <div class="event-title">
+        <span>🚗 車場分流系統</span>
+        <span id="teacherBadge" style="color:#38bdf8;font-size:12px;">(一號崗老師)</span>
+      </div>
+      <div id="syncStatusBadge" class="sync-badge" onclick="switchTab('settings')">
+        📱 單機記憶模式
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-pill stat-vip">
+        <span>🌟 VIP位</span>
+        <span id="vipCountText">0 / 13</span>
+      </div>
+      <div class="stat-pill stat-play">
+        <span>🅿️ 操場</span>
+        <span id="playCountText">0 架</span>
+      </div>
+      <button class="icon-btn" onclick="manualSync()" title="即時刷新同步">🔄</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 分頁切換 -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabBtnScan" onclick="switchTab('scan')">🔍 掃描/快搜</button>
+      <button class="tab-btn" id="tabBtnList" onclick="switchTab('list')">📋 總名單 (27)</button>
+      <button class="tab-btn" id="tabBtnSettings" onclick="switchTab('settings')">⚙️ 同步/管理</button>
+    </div>
+
+    <!-- ==================== 分頁 1：掃描與極速搜尋 ==================== -->
+    <div id="viewScan">
+      <!-- 鏡頭掃描按鈕列 -->
+      <div class="scan-bar">
+        <button class="cam-btn" onclick="openLiveCamera()">
+          📷 開啟鏡頭識車牌
+        </button>
+        <button class="cam-btn secondary" onclick="document.getElementById('photoInput').click()">
+          📸 原生相機影相辨識
+        </button>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoFile(event)" />
+      </div>
+
+      <!-- 即時鏡頭預覽框 -->
+      <div id="cameraModal">
+        <video id="videoPreview" autoplay playsinline muted></video>
+        <div class="plate-guide"><span>請將車牌對準黃框內</span></div>
+        <div class="cam-controls">
+          <button class="checkin-btn" style="background:#facc15;color:#000;padding:11px;" onclick="captureFromVideo()">⚡ 立即擷取辨識</button>
+          <button class="checkin-btn alt" style="flex:0 0 85px;padding:11px;" onclick="closeLiveCamera()">關閉</button>
+        </div>
+      </div>
+
+      <div id="ocrStatus" class="ocr-status">⏳ 正在辨識車牌文字...</div>
+      <div id="ocrCandidates" class="quick-chips" style="display:none;"></div>
+
+      <!-- 車牌輸入框 -->
+      <div class="search-box">
+        <input
+          type="text"
+          id="plateInput"
+          class="search-input"
+          placeholder="輸入車牌數字或英文 (如 6618)"
+           oninput="onSearchChange(this.value)"
+        />
+        <button class="clear-btn" onclick="clearSearch()">清除</button>
+      </div>
+
+      <!-- 特殊車輛與自訂車牌一鍵快選 -->
+      <div class="quick-chips">
+        <button class="chip gold" onclick="selectSpecialGuest('GUEST_TENG')">🎖️ 滕錦光教授 (主禮)</button>
+        <button class="chip gold" onclick="selectSpecialGuest('SSY_1')">🚐 嗇色園園車 (主席/總監)</button>
+        <button class="chip" onclick="quickFill('APM')">APM (蕭校監)</button>
+        <button class="chip" onclick="quickFill('XOX')">XOX (吳校董)</button>
+        <button class="chip" onclick="quickFill('ZOELAM')">ZOE LAM (吳校長)</button>
+      </div>
+
+      <!-- 搜尋結果全屏分流卡 -->
+      <div id="resultContainer"></div>
+
+      <!-- 多筆相近車牌候選列表 -->
+      <div id="multiMatchContainer" class="multi-matches"></div>
+
+      <!-- 超大型防誤觸九宮格數字掣 -->
+      <div class="numpad" id="numpadArea">
+        <button class="num-key" onclick="pressDigit('1')">1</button>
+        <button class="num-key" onclick="pressDigit('2')">2</button>
+        <button class="num-key" onclick="pressDigit('3')">3</button>
+        <button class="num-key" onclick="pressDigit('4')">4</button>
+        <button class="num-key" onclick="pressDigit('5')">5</button>
+        <button class="num-key" onclick="pressDigit('6')">6</button>
+        <button class="num-key" onclick="pressDigit('7')">7</button>
+        <button class="num-key" onclick="pressDigit('8')">8</button>
+        <button class="num-key" onclick="pressDigit('9')">9</button>
+        <button class="num-key fn" onclick="document.getElementById('plateInput').focus()">ABC 鍵盤</button>
+        <button class="num-key" onclick="pressDigit('0')">0</button>
+        <button class="num-key fn" onclick="backspaceDigit()">⌫ 退格</button>
+      </div>
+    </div>
+
+    <!-- ==================== 分頁 2：全部名單與進場紀錄 ==================== -->
+    <div id="viewList" style="display:none;">
+      <div class="filter-bar">
+        <button class="chip active" onclick="setListFilter('ALL')">全部名單</button>
+        <button class="chip gold" onclick="setListFilter('VIP')">🌟 VIP位</button>
+        <button class="chip" onclick="setListFilter('PLAY')">🅿️ 操場</button>
+        <button class="chip" onclick="setListFilter('IN')">✅ 已進場</button>
+        <button class="chip" onclick="setListFilter('PENDING')">⏳ 未到場</button>
+      </div>
+      <div id="vehicleListContainer"></div>
+    </div>
+
+    <!-- ==================== 分頁 3：4人同步設定及永久庫管理 ==================== -->
+    <div id="viewSettings" style="display:none;">
+      <div class="settings-card">
+        <h3>👮 崗位及分流規則設定</h3>
+        <label class="label-sm">您目前的崗位名稱（顯示於進場記錄）：</label>
+        <select id="operatorSelect" class="dark-select" onchange="saveSettings()">
+          <option value="一號崗老師">一號崗老師（大閘口）</option>
+          <option value="二號崗老師">二號崗老師（大閘分流）</option>
+          <option value="三號崗老師">三號崗老師（VIP區入口）</option>
+          <option value="四號崗老師">四號崗老師（操場入口）</option>
+        </select>
+
+        <label class="label-sm">名單內「副校長（共3位）」預設泊位指引：</label>
+        <select id="vpPolicySelect" class="dark-select" onchange="saveSettings()">
+          <option value="FLEX">現場彈性選擇（同時顯示 VIP 及 操場 按鈕）</option>
+          <option value="PLAY">統一預設泊「操場」</option>
+          <option value="VIP">統一預設泊「VIP位」</option>
+        </select>
+
+        <label class="label-sm">VIP 車位上限提示數量：</label>
+        <input type="number" id="vipCapacityInput" class="dark-input" value="13" onchange="saveSettings()" />
+      </div>
+
+      <div class="settings-card">
+        <h3>☁️ 4位老師手機即時同步（Google Sheet 雲端庫）</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:4px 0 8px 0;line-height:1.5;">
+          如直接透過 Google Apps Script 網址開啟本頁，系統會<strong>自動連線同步</strong>；如用單機 HTML 檔案開啟，只需貼上部署好的 Apps Script 網址即可4機即時同步。
+        </p>
+        <label class="label-sm">Google Apps Script 網頁應用程式網址 (選填)：</label>
+        <input type="url" id="gasUrlInput" class="dark-input" placeholder="https://script.google.com/macros/s/.../exec" />
+        <button class="btn-block btn-blue" onclick="saveGasUrlAndSync()">💾 儲存網址並立即同步</button>
+      </div>
+
+      <div class="settings-card">
+        <h3>🗄️ 永久車牌記憶庫管理（跨活動沿用）</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:4px 0 8px 0;line-height:1.5;">
+          所有即場新增或補登的校長／嘉賓車牌均會永久保留。下次學校舉辦活動時，按下方「開啟新活動」即可清空今日進場剔號，但<strong>完整保留所有歷史 VIP 車牌記錄</strong>！
+        </p>
+        <button class="btn-block btn-amber" onclick="resetCheckInsOnly()">🔄 開啟新活動（清空今日進場狀態，保留永久車牌庫）</button>
+        <button class="btn-block btn-slate" onclick="exportMasterCsv()">📥 匯出完整永久車牌庫及進場紀錄 (.CSV)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隱藏畫布供鏡頭擷取與影像強化使用 -->
+  <canvas id="captureCanvas" style="display:none;"></canvas>
+  <div id="toastMsg" class="toast">✅ 已記錄進場！</div>
+
+  <script>
+    // =========================================================================
+    // 1. 預載「嗇色園中學聯校頒獎典禮 2025-2026」全部 27 架車名單
+    // =========================================================================
+    const INITIAL_VEHICLES = [
+      { id: "GUEST_TENG", org: "主禮嘉賓", name: "滕錦光教授", rawPlate: "", cleanPlate: "", role: "主禮嘉賓", zone: "VIP", note: "到場時可即場補登綁定車牌" },
+      { id: "SSY_1", org: "嗇色園", name: "姚嘉棟主席", rawPlate: "園車 (1)", cleanPlate: "園車1", role: "主席", zone: "VIP", note: "嗇色園園車" },
+      { id: "SSY_2", org: "嗇色園", name: "黃子峰總監", rawPlate: "園車 (2)", cleanPlate: "園車2", role: "總監", zone: "VIP", note: "嗇色園園車" },
+
+      { id: "HL_1", org: "可立", name: "黎洛琪校長", rawPlate: "YM 6618", cleanPlate: "YM6618", role: "校長", zone: "VIP", note: "" },
+      { id: "HL_2", org: "可立", name: "陳沛聰副校長", rawPlate: "WK 4656", cleanPlate: "WK4656", role: "副校長", zone: "VP", note: "" },
+      { id: "HL_3", org: "可立", name: "嚴偉德老師", rawPlate: "RV 2075", cleanPlate: "RV2075", role: "老師", zone: "PLAY", note: "" },
+      { id: "HL_4", org: "可立", name: "歐潤南老師", rawPlate: "NZ 7515", cleanPlate: "NZ7515", role: "老師", zone: "PLAY", note: "" },
+      { id: "HL_5", org: "可立", name: "陳永華校董", rawPlate: "VG 9687", cleanPlate: "VG9687", role: "校董", zone: "VIP", note: "" },
+
+      { id: "HF_1", org: "可風", name: "陳廣鴻老師", rawPlate: "ZW1587", cleanPlate: "ZW1587", role: "老師", zone: "PLAY", note: "" },
+      { id: "HF_2", org: "可風", name: "蘇家輝老師", rawPlate: "SY3880", cleanPlate: "SY3880", role: "老師", zone: "PLAY", note: "" },
+      { id: "HF_3", org: "可風", name: "鍾昊殷老師", rawPlate: "RA4323", cleanPlate: "RA4323", role: "老師", zone: "PLAY", note: "" },
+      { id: "HF_4", org: "可風", name: "嚴巧兒老師", rawPlate: "VS5767", cleanPlate: "VS5767", role: "老師", zone: "PLAY", note: "" },
+      { id: "HF_5", org: "可風", name: "黃頌賢老師", rawPlate: "RF1689", cleanPlate: "RF1689", role: "老師", zone: "PLAY", note: "" },
+      { id: "HF_6", org: "可風", name: "吳錦勝校董", rawPlate: "XOX", cleanPlate: "XOX", role: "校董", zone: "VIP", note: "自訂車牌" },
+
+      { id: "HD_1", org: "可道", name: "源植盛校長", rawPlate: "YT 1264", cleanPlate: "YT1264", role: "校長", zone: "VIP", note: "" },
+      { id: "HD_2", org: "可道", name: "何恩瑜老師", rawPlate: "WM 7689", cleanPlate: "WM7689", role: "老師", zone: "PLAY", note: "" },
+      { id: "HD_3", org: "可道", name: "倪國輝老師", rawPlate: "UY 8975", cleanPlate: "UY8975", role: "老師", zone: "PLAY", note: "" },
+
+      { id: "HYI_1", org: "可藝", name: "張健新校長", rawPlate: "LB 2185", cleanPlate: "LB2185", role: "校長", zone: "VIP", note: "" },
+      { id: "HYI_2", org: "可藝", name: "馮偉亮副校長", rawPlate: "JK 7643", cleanPlate: "JK7643", role: "副校長", zone: "VP", note: "" },
+      { id: "HYI_3", org: "可藝", name: "胡鎮豪副校長", rawPlate: "ZJ 8177", cleanPlate: "ZJ8177", role: "副校長", zone: "VP", note: "" },
+      { id: "HYI_4", org: "可藝", name: "胡家俊老師", rawPlate: "MY 517", cleanPlate: "MY517", role: "老師", zone: "PLAY", note: "" },
+      { id: "HYI_5", org: "可藝", name: "楊少娟老師", rawPlate: "YD 9298", cleanPlate: "YD9298", role: "老師", zone: "PLAY", note: "" },
+
+      { id: "HYU_1", org: "可譽", name: "蕭德華校監", rawPlate: "APM", cleanPlate: "APM", role: "校監", zone: "VIP", note: "自訂車牌" },
+      { id: "HSS_1", org: "可信小", name: "陳育鳴校長", rawPlate: "EC 8213", cleanPlate: "EC8213", role: "校長", zone: "VIP", note: "" },
+      { id: "HLS_1", org: "可立小", name: "吳樹東校長", rawPlate: "ZOE LAM", cleanPlate: "ZOELAM", role: "校長", zone: "VIP", note: "自訂車牌" },
+      { id: "HSK_1", org: "可瑞幼", name: "陳慧雯校長", rawPlate: "PZ 3917", cleanPlate: "PZ3917", role: "校長", zone: "VIP", note: "" },
+      { id: "HK_1", org: "可觀", name: "郭志泰校長", rawPlate: "DB 6888", cleanPlate: "DB6888", role: "校長", zone: "VIP", note: "" }
+    ];
+
+    // =========================================================================
+    // 2. 狀態儲存與初始化
+    // =========================================================================
+    const STORAGE_MASTER_KEY = "hoyu_parking_master_v1";
+    const STORAGE_CHECKIN_KEY = "hoyu_parking_checkins_v1";
+    const STORAGE_SETTINGS_KEY = "hoyu_parking_settings_v1";
+
+    let masterList = [];
+    let checkInMap = {}; // { vehicleId: { zone: 'VIP'|'PLAY', time: '09:12', by: '一號崗老師', plate: 'YM6618' } }
+    let settings = {
+      operator: "一號崗老師",
+      vpPolicy: "FLEX",
+      vipCapacity: 13,
+      gasUrl: ""
+    };
+    let currentFilter = "ALL";
+    let videoStream = null;
+    let tesseractLoaded = false;
+    const isHostedInGas = (typeof google !== "undefined" && google.script && google.script.run);
+
+    function normalizePlate(str) {
+      if (!str) return "";
+      return String(str).toUpperCase().replace(/[^A-Z0-9\u4E00-\u9FA5]/g, "");
+    }
+
+    function initApp() {
+      const savedSettings = localStorage.getItem(STORAGE_SETTINGS_KEY);
+      if (savedSettings) {
+        try { settings = Object.assign(settings, JSON.parse(savedSettings)); } catch (e) {}
+      }
+
+      const savedMaster = localStorage.getItem(STORAGE_MASTER_KEY);
+      if (savedMaster) {
+        try { masterList = JSON.parse(savedMaster); } catch (e) { masterList = [...INITIAL_VEHICLES]; }
+      } else {
+        masterList = [...INITIAL_VEHICLES];
+        saveLocalData();
+      }
+
+      const savedCheckIns = localStorage.getItem(STORAGE_CHECKIN_KEY);
+      if (savedCheckIns) {
+        try { checkInMap = JSON.parse(savedCheckIns); } catch (e) { checkInMap = {}; }
+      }
+
+      // 套用設定到 UI
+      document.getElementById("operatorSelect").value = settings.operator;
+      document.getElementById("vpPolicySelect").value = settings.vpPolicy;
+      document.getElementById("vipCapacityInput").value = settings.vipCapacity;
+      document.getElementById("gasUrlInput").value = settings.gasUrl || "";
+      document.getElementById("teacherBadge").textContent = "(" + settings.operator + ")";
+
+      updateStatsUI();
+      renderVehicleList();
+
+      // 若部署於 Google Apps Script 或已設定雲端網址，啟動每 6 秒自動同步
+      if (isHostedInGas || settings.gasUrl) {
+        syncWithCloud(true);
+        setInterval(() => syncWithCloud(false), 6000);
+      }
+    }
+
+    function saveLocalData() {
+      localStorage.setItem(STORAGE_MASTER_KEY, JSON.stringify(masterList));
+      localStorage.setItem(STORAGE_CHECKIN_KEY, JSON.stringify(checkInMap));
+      updateStatsUI();
+      document.getElementById("tabBtnList").textContent = `📋 總名單 (${masterList.length})`;
+    }
+
+    function saveSettings() {
+      settings.operator = document.getElementById("operatorSelect").value;
+      settings.vpPolicy = document.getElementById("vpPolicySelect").value;
+      settings.vipCapacity = parseInt(document.getElementById("vipCapacityInput").value, 10) || 13;
+      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+      document.getElementById("teacherBadge").textContent = "(" + settings.operator + ")";
+      updateStatsUI();
+      onSearchChange(document.getElementById("plateInput").value);
+    }
+
+    // =========================================================================
+    // 3. 車牌極速搜尋與分流顯示邏輯
+    // =========================================================================
+    function pressDigit(d) {
+      const input = document.getElementById("plateInput");
+      input.value = (input.value + d).toUpperCase();
+      onSearchChange(input.value);
+    }
+
+    function backspaceDigit() {
+      const input = document.getElementById("plateInput");
+      input.value = input.value.slice(0, -1);
+      onSearchChange(input.value);
+    }
+
+    function clearSearch() {
+      document.getElementById("plateInput").value = "";
+      document.getElementById("resultContainer").innerHTML = "";
+      document.getElementById("multiMatchContainer").innerHTML = "";
+      document.getElementById("ocrCandidates").style.display = "none";
+    }
+
+    function quickFill(plateText) {
+      document.getElementById("plateInput").value = plateText;
+      onSearchChange(plateText);
+    }
+
+    function selectSpecialGuest(vehicleId) {
+      const v = masterList.find(item => item.id === vehicleId);
+      if (!v) return;
+      document.getElementById("multiMatchContainer").innerHTML = "";
+      renderMatchedCard(v);
+    }
+
+    function onSearchChange(rawVal) {
+      const q = normalizePlate(rawVal);
+      const resBox = document.getElementById("resultContainer");
+      const multiBox = document.getElementById("multiMatchContainer");
+      resBox.innerHTML = "";
+      multiBox.innerHTML = "";
+
+      if (!q) return;
+
+      // 精準相符優先，其次尾數/包含相符
+      const exact = masterList.find(v => v.cleanPlate && v.cleanPlate === q);
+      if (exact) {
+        renderMatchedCard(exact);
+        return;
+      }
+
+      const partials = masterList.filter(v => v.cleanPlate && v.cleanPlate.includes(q));
+      if (partials.length === 1) {
+        renderMatchedCard(partials[0]);
+      } else if (partials.length > 1) {
+        multiBox.innerHTML = partials.map(v => {
+          const zLabel = getEffectiveZone(v) === "VIP" ? "🌟 VIP位" : (getEffectiveZone(v) === "VP" ? "🔷 副校長" : "🅿️ 操場");
+          return `
+            <div class="match-item" onclick='renderMatchedCardById("${v.id}")'>
+              <div>
+                <strong style="font-size:18px;color:#fef08a;">${v.rawPlate}</strong>
+                <div style="font-size:14px;color:#e2e8f0;">${v.org} · ${v.name}</div>
+              </div>
+              <span style="font-weight:800;font-size:14px;">${zLabel} ➔</span>
+            </div>
+          `;
+        }).join("");
+      } else if (q.length >= 2) {
+        // 未登記車牌 ➔ 顯示即場分流及永久儲存卡
+        renderUnknownCard(rawVal.trim().toUpperCase(), q);
+      }
+    }
+
+    function renderMatchedCardById(id) {
+      const v = masterList.find(x => x.id === id);
+      if (v) {
+        document.getElementById("multiMatchContainer").innerHTML = "";
+        renderMatchedCard(v);
+      }
+    }
+
+    function getEffectiveZone(v) {
+      if (v.zone === "VP") {
+        if (settings.vpPolicy === "VIP") return "VIP";
+        if (settings.vpPolicy === "PLAY") return "PLAY";
+        return "VP";
+      }
+      return v.zone;
+    }
+
+    function renderMatchedCard(v) {
+      const effZone = getEffectiveZone(v);
+      const checked = checkInMap[v.id];
+      const resBox = document.getElementById("resultContainer");
+
+      let cardClass = "result-play";
+      let badgeText = "已登記車輛";
+      let headline = "🅿️ 請往 操場 泊車";
+
+      if (effZone === "VIP") {
+        cardClass = "result-vip";
+        badgeText = v.isHistory ? "🌟 永久車牌庫歷史 VIP 記錄" : "🌟 貴賓 / 校長專用車位";
+        headline = "🌟 請往 VIP 車位";
+      } else if (effZone === "VP") {
+        cardClass = "result-vp";
+        badgeText = "🔷 副校長座駕（彈性分流）";
+        headline = "請選擇 VIP位 或 操場";
+      } else if (v.isHistory) {
+        badgeText = "🗄️ 永久車牌庫歷史記錄";
+      }
+
+      const alreadyHtml = checked
+        ? `<div class="already-in-alert">⚠️ 此車已於 ${checked.time} 由 ${checked.by} 放行（泊：${checked.zone === 'VIP' ? 'VIP位' : '操場'}）</div>`
+        : "";
+
+      // 若為未填車牌的主禮嘉賓或園車，提供即場綁定車牌輸入欄
+      const bindPlateHtml = (!v.cleanPlate || v.id.startsWith("SSY_"))
+        ? `<input type="text" id="bindPlateField" class="mini-input" placeholder="選填：輸入當日實際車牌以永久保存 (如 AB 1234)" value="${v.rawPlate.startsWith('園車') ? '' : v.rawPlate}" />`
+        : "";
+
+      let buttonsHtml = "";
+      if (effZone === "VP") {
+        buttonsHtml = `
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP')">🌟 放行往 VIP位</button>
+          <button class="checkin-btn alt" onclick="confirmCheckIn('${v.id}', 'PLAY')">🅿️ 放行往 操場</button>
+        `;
+      } else if (effZone === "VIP") {
+        buttonsHtml = `
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'VIP')">✅ 確認放行 (VIP位)</button>
+          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'PLAY')">改泊操場</button>
+        `;
+      } else {
+        buttonsHtml = `
+          <button class="checkin-btn" onclick="confirmCheckIn('${v.id}', 'PLAY')">✅ 確認放行 (操場)</button>
+          <button class="checkin-btn alt" style="flex:0 0 auto;font-size:13px;" onclick="confirmCheckIn('${v.id}', 'VIP')">改泊VIP</button>
+        `;
+      }
+
+      resBox.innerHTML = `
+        <div class="result-card ${cardClass}">
+          <div class="zone-badge">${badgeText}</div>
+          <div class="zone-giant">${headline}</div>
+          <div class="owner-info">${v.org} — ${v.name}</div>
+          <div class="plate-tag">${v.rawPlate || "待補登車牌"}</div>
+          ${bindPlateHtml}
+          ${alreadyHtml}
+          <div class="action-row">
+            ${buttonsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUnknownCard(displayPlate, cleanPlate) {
+      const resBox = document.getElementById("resultContainer");
+      resBox.innerHTML = `
+        <div class="result-card result-unknown">
+          <div class="zone-badge">⚠️ 未在預先登記名單內</div>
+          <div class="zone-giant">車牌：${displayPlate}</div>
+          <div style="font-size:14px;opacity:0.95;">可即場放行並<strong>永久儲存至車牌總庫</strong>，下次活動無需再登記：</div>
+          <input type="text" id="newGuestOrg" class="mini-input" placeholder="學校 / 機構名稱 (選填，如：友校 / 嘉賓)" />
+          <input type="text" id="newGuestName" class="mini-input" placeholder="姓名及職銜 (如：陳大文校長 / 李老師)" />
+          <div class="action-row">
+            <button class="checkin-btn" style="background:#fde047;color:#0f172a;" onclick="registerAndCheckIn('${displayPlate}', '${cleanPlate}', 'VIP')">
+              🌟 泊 VIP位 ＋ 永久儲存
+            </button>
+            <button class="checkin-btn" onclick="registerAndCheckIn('${displayPlate}', '${cleanPlate}', 'PLAY')">
+              🅿️ 泊 操場 ＋ 永久儲存
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 4. 確認進場及寫入永久車牌總庫
+    // =========================================================================
+    function getNowTimeStr() {
+      const now = new Date();
+      return String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    }
+
+    function confirmCheckIn(vehicleId, assignedZone) {
+      const v = masterList.find(item => item.id === vehicleId);
+      if (!v) return;
+
+      // 檢查是否有即場補登車牌
+      const bindInput = document.getElementById("bindPlateField");
+      if (bindInput && bindInput.value.trim() !== "") {
+        v.rawPlate = bindInput.value.trim().toUpperCase();
+        v.cleanPlate = normalizePlate(v.rawPlate);
+      }
+
+      const record = {
+        id: v.id,
+        zone: assignedZone,
+        time: getNowTimeStr(),
+        by: settings.operator,
+        plate: v.rawPlate || v.name,
+        owner: `${v.org} ${v.name}`
+      };
+
+      checkInMap[v.id] = record;
+      saveLocalData();
+      pushActionToCloud({ action: "checkIn", vehicle: v, checkIn: record });
+
+      showToast(`✅ 已放行：${v.name} ➔ ${assignedZone === 'VIP' ? 'VIP位' : '操場'}`);
+      clearSearch();
+      renderVehicleList();
+    }
+
+    function registerAndCheckIn(rawPlate, cleanPlate, assignedZone) {
+      const org = (document.getElementById("newGuestOrg").value || "現場登記").trim();
+      const name = (document.getElementById("newGuestName").value || (assignedZone === "VIP" ? "VIP嘉賓/校長" : "教職員")).trim();
+      const newId = "CUSTOM_" + cleanPlate;
+
+      const newVehicle = {
+        id: newId,
+        org: org,
+        name: name,
+        rawPlate: rawPlate,
+        cleanPlate: cleanPlate,
+        role: assignedZone === "VIP" ? "校長/嘉賓" : "老師/來賓",
+        zone: assignedZone,
+        isHistory: true,
+        note: "門口即場新增永久記錄"
+      };
+
+      const existingIdx = masterList.findIndex(x => x.cleanPlate === cleanPlate);
+      if (existingIdx >= 0) {
+        masterList[existingIdx] = newVehicle;
+      } else {
+        masterList.unshift(newVehicle);
+      }
+
+      const record = {
+        id: newId,
+        zone: assignedZone,
+        time: getNowTimeStr(),
+        by: settings.operator,
+        plate: rawPlate,
+        owner: `${org} ${name}`
+      };
+
+      checkInMap[newId] = record;
+      saveLocalData();
+      pushActionToCloud({ action: "upsertAndCheckIn", vehicle: newVehicle, checkIn: record });
+
+      showToast(`💾 已永久記住 ${rawPlate} 並放行往 ${assignedZone === 'VIP' ? 'VIP位' : '操場'}`);
+      clearSearch();
+      renderVehicleList();
+    }
+
+    function updateStatsUI() {
+      let vipIn = 0;
+      let playIn = 0;
+      Object.values(checkInMap).forEach(rec => {
+        if (rec.zone === "VIP") vipIn++;
+        else playIn++;
+      });
+      document.getElementById("vipCountText").textContent = `${vipIn} / ${settings.vipCapacity}`;
+      document.getElementById("playCountText").textContent = `${playIn} 架`;
+    }
+
+    // =========================================================================
+    // 5. 手機鏡頭拍攝與前端 OCR 車牌自動辨識
+    // =========================================================================
+    async function ensureTesseract() {
+      if (tesseractLoaded && window.Tesseract) return true;
+      const statusEl = document.getElementById("ocrStatus");
+      statusEl.style.display = "block";
+      statusEl.textContent = "⏳ 首次載入車牌光學辨識引擎 (約2秒)...";
+
+      return new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        script.onload = () => {
+          tesseractLoaded = true;
+          resolve(true);
+        };
+        script.onerror = () => reject(new Error("無法載入 OCR 元件，請檢查網絡或改用下方數字掣快搜"));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function openLiveCamera() {
+      const modal = document.getElementById("cameraModal");
+      const video = document.getElementById("videoPreview");
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // 若以本機 file:// 開啟被瀏覽器限制即時串流，自動切換至手機原生相機
+        document.getElementById("photoInput").click();
+        return;
+      }
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        video.srcObject = videoStream;
+        modal.style.display = "block";
+      } catch (err) {
+        document.getElementById("photoInput").click();
+      }
+    }
+
+    function closeLiveCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+      document.getElementById("cameraModal").style.display = "none";
+    }
+
+    async function captureFromVideo() {
+      const video = document.getElementById("videoPreview");
+      if (!video.videoWidth) return;
+
+      const canvas = document.getElementById("captureCanvas");
+      // 只擷取畫面中央黃框區域，大幅提升 OCR 速度與準確度
+      const cropW = video.videoWidth * 0.8;
+      const cropH = video.videoHeight * 0.36;
+      const startX = (video.videoWidth - cropW) / 2;
+      const startY = (video.videoHeight - cropH) / 2 - video.videoHeight * 0.05;
+
+      canvas.width = cropW;
+      canvas.height = cropH;
+      const ctx = canvas.getContext("2d");
+      ctx.filter = "contrast(1.45) grayscale(1)";
+      ctx.drawImage(video, startX, Math.max(0, startY), cropW, cropH, 0, 0, cropW, cropH);
+
+      closeLiveCamera();
+      await runPlateOCR(canvas);
+    }
+
+    function handlePhotoFile(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.getElementById("captureCanvas");
+        const maxW = 1000;
+        const scale = Math.min(1, maxW / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.filter = "contrast(1.4) grayscale(1)";
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        await runPlateOCR(canvas);
+        event.target.value = "";
+      };
+      img.src = URL.createObjectURL(file);
+    }
+
+    async function runPlateOCR(canvasElement) {
+      const statusEl = document.getElementById("ocrStatus");
+      const candBox = document.getElementById("ocrCandidates");
+      candBox.style.display = "none";
+
+      try {
+        await ensureTesseract();
+        statusEl.style.display = "block";
+        statusEl.textContent = "🔍 正在分析車牌號碼...";
+
+        const { data: { text } } = await Tesseract.recognize(canvasElement, "eng");
+        statusEl.style.display = "none";
+
+        const cleanedLines = text
+          .toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, " ")
+          .split(/\s+/)
+          .filter(t => t.length >= 2);
+
+        // 嘗試組合香港標準車牌格式 (例如 YM 6618 -> YM6618) 或擷取純數字
+        const joinedText = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const hkPlateRegex = /[A-Z]{1,2}\d{1,4}/g;
+        const plateMatches = joinedText.match(hkPlateRegex) || [];
+
+        const candidates = [...new Set([...plateMatches, ...cleanedLines])].slice(0, 5);
+
+        if (candidates.length > 0) {
+          const best = candidates[0];
+          document.getElementById("plateInput").value = best;
+          onSearchChange(best);
+
+          if (candidates.length > 1) {
+            candBox.style.display = "flex";
+            candBox.innerHTML = `<span style="font-size:12px;color:#94a3b8;align-self:center;">其他辨識結果：</span>` +
+              candidates.map(c => `<button class="chip" onclick="quickFill('${c}')">${c}</button>`).join("");
+          }
+        } else {
+          showToast("⚠️ 未能清晰認出車牌，請直接按數字掣輸入尾數");
+        }
+      } catch (err) {
+        statusEl.style.display = "none";
+        showToast("⚠️ " + err.message);
+      }
+    }
+
+    // =========================================================================
+    // 6. 總名單檢視、篩選與匯出
+    // =========================================================================
+    function setListFilter(f) {
+      currentFilter = f;
+      renderVehicleList();
+    }
+
+    function renderVehicleList() {
+      const box = document.getElementById("vehicleListContainer");
+      const filtered = masterList.filter(v => {
+        const isChecked = !!checkInMap[v.id];
+        const z = getEffectiveZone(v);
+        if (currentFilter === "VIP") return z === "VIP";
+        if (currentFilter === "PLAY") return z === "PLAY" || z === "VP";
+        if (currentFilter === "IN") return isChecked;
+        if (currentFilter === "PENDING") return !isChecked;
+        return true;
+      });
+
+      box.innerHTML = filtered.map(v => {
+        const rec = checkInMap[v.id];
+        const z = getEffectiveZone(v);
+        const badgeCls = z === "VIP" ? "badge-vip" : (z === "VP" ? "badge-vp" : "badge-play");
+        const badgeTxt = z === "VIP" ? "VIP位" : (z === "VP" ? "副校長" : "操場");
+
+        return `
+          <div class="vehicle-row ${rec ? 'checked' : ''}" onclick="jumpToVehicle('${v.id}')">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                <span class="badge-sm ${badgeCls}">${badgeTxt}</span>
+                <strong style="font-size:16px;">${v.org} · ${v.name}</strong>
+              </div>
+              <div style="font-size:14px;color:#cbd5e1;">
+                車牌：<strong style="color:#fef08a;">${v.rawPlate || "(待補登)"}</strong>
+                ${v.isHistory ? '<span style="color:#38bdf8;font-size:12px;">[新增永久記錄]</span>' : ''}
+              </div>
+              ${rec ? `<div style="font-size:12px;color:#6ee7b7;margin-top:3px;">✅ 已入 (${rec.zone === 'VIP' ? 'VIP' : '操場'}) · ${rec.time} · ${rec.by}</div>` : ''}
+            </div>
+            <div style="font-size:18px;color:#94a3b8;">➔</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function jumpToVehicle(id) {
+      switchTab("scan");
+      renderMatchedCardById(id);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function switchTab(tab) {
+      document.getElementById("viewScan").style.display = tab === "scan" ? "block" : "none";
+      document.getElementById("viewList").style.display = tab === "list" ? "block" : "none";
+      document.getElementById("viewSettings").style.display = tab === "settings" ? "block" : "none";
+
+      document.getElementById("tabBtnScan").classList.toggle("active", tab === "scan");
+      document.getElementById("tabBtnList").classList.toggle("active", tab === "list");
+      document.getElementById("tabBtnSettings").classList.toggle("active", tab === "settings");
+      if (tab === "list") renderVehicleList();
+    }
+
+    // =========================================================================
+    // 7. 雲端 4 人即時同步 (支援 Google Apps Script 內嵌或外部 API)
+    // =========================================================================
+    function saveGasUrlAndSync() {
+      settings.gasUrl = document.getElementById("gasUrlInput").value.trim();
+      localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+      syncWithCloud(true);
+    }
+
+    function manualSync() {
+      if (isHostedInGas || settings.gasUrl) {
+        syncWithCloud(true);
+      } else {
+        showToast("📱 目前為單機模式（可在「同步/管理」連接 Google Sheet）");
+      }
+    }
+
+    function syncWithCloud(showNotification) {
+      const badge = document.getElementById("syncStatusBadge");
+      if (isHostedInGas) {
+        google.script.run
+          .withSuccessHandler(res => applyCloudState(res, showNotification))
+          .withFailureHandler(() => { badge.textContent = "⚠️ 同步重試中"; })
+          .getParkingState(JSON.stringify(masterList));
+      } else if (settings.gasUrl) {
+        fetch(settings.gasUrl + "?api=1&t=" + Date.now())
+          .then(r => r.json())
+          .then(res => applyCloudState(res, showNotification))
+          .catch(() => { badge.textContent = "⚠️ 離線快取中"; });
+      }
+    }
+
+    function applyCloudState(res, showNotification) {
+      if (!res || !res.ok) return;
+      const badge = document.getElementById("syncStatusBadge");
+      badge.className = "sync-badge online";
+      badge.textContent = "🟢 4人雲端同步中";
+
+      if (Array.isArray(res.masterList) && res.masterList.length > 0) {
+        masterList = res.masterList;
+      }
+      if (res.checkInMap) {
+        checkInMap = res.checkInMap;
+      }
+      saveLocalData();
+      renderVehicleList();
+      if (showNotification) showToast("🔄 已同步最新車位及永久車牌庫！");
+    }
+
+    function pushActionToCloud(payload) {
+      const payloadStr = JSON.stringify(payload);
+      if (isHostedInGas) {
+        google.script.run
+          .withSuccessHandler(res => applyCloudState(res, false))
+          .handleClientAction(payloadStr);
+      } else if (settings.gasUrl) {
+        fetch(settings.gasUrl, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: payloadStr
+        })
+          .then(r => r.json())
+          .then(res => applyCloudState(res, false))
+          .catch(() => {});
+      }
+    }
+
+    function resetCheckInsOnly() {
+      if (!confirm("確定要清空「今日進場狀態」以準備下次新活動嗎？\n（所有預載及新增的校長／嘉賓永久車牌記錄將會100%保留！）")) return;
+      checkInMap = {};
+      saveLocalData();
+      pushActionToCloud({ action: "resetCheckIns" });
+      renderVehicleList();
+      showToast("✨ 已重設進場狀態，永久車牌總庫已完整保留！");
+    }
+
+    function exportMasterCsv() {
+      const headers = ["機構/學校", "姓名", "車牌", "標準化車牌", "職銜", "預設分流", "今日進場狀態", "實際泊位", "進場時間", "放行老師"];
+      const rows = masterList.map(v => {
+        const rec = checkInMap[v.id];
+        return [
+          v.org,
+          v.name,
+          v.rawPlate,
+          v.cleanPlate,
+          v.role,
+          v.zone === "VIP" ? "VIP位" : (v.zone === "VP" ? "副校長彈性" : "操場"),
+          rec ? "已進場" : "未到場",
+          rec ? (rec.zone === "VIP" ? "VIP位" : "操場") : "",
+          rec ? rec.time : "",
+          rec ? rec.by : ""
+        ].map(cell => `"${String(cell || "").replace(/"/g, '""')}"`).join(",");
+      });
+
+      const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `學校永久車牌庫及進場記錄_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toastMsg");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { el.style.display = "none"; }, 2800);
+    }
+
+    initApp();
+  </script>
+</body>
+</html>
+
+
+第二部分：Google Sheet 雲端同步後端（Code.gs 選配）
+
+若希望 4 位老師手機即時同步進場數量，並將新登記的校長或嘉賓車牌自動寫入 Google Sheet 兩個分頁（永久車牌總庫 與 當日進場記錄），請將以下程式碼貼入 Google Sheet 的 Apps Script (Code.gs) 中：
+
+const MASTER_SHEET_NAME = "永久車牌總庫";
+const CHECKIN_SHEET_NAME = "當日進場記錄";
+
+function doGet(e) {
+  if (e && e.parameter && e.parameter.api === "1") {
+    const state = getParkingState(null);
+    return ContentService
+      .createTextOutput(JSON.stringify(state))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  return HtmlService.createHtmlOutputFromFile("Index")
+    .setTitle("學校車牌掃描及極速分流系統")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function doPost(e) {
+  const result = handleClientAction(e.postData.contents);
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function ensureSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let masterSheet = ss.getSheetByName(MASTER_SHEET_NAME);
+  if (!masterSheet) {
+    masterSheet = ss.insertSheet(MASTER_SHEET_NAME);
+    masterSheet.appendRow(["ID", "機構/學校", "姓名", "原始車牌", "標準化車牌", "職銜", "預設分流", "是否歷史新增", "備註"]);
+  }
+  let checkInSheet = ss.getSheetByName(CHECKIN_SHEET_NAME);
+  if (!checkInSheet) {
+    checkInSheet = ss.insertSheet(CHECKIN_SHEET_NAME);
+    checkInSheet.appendRow(["ID", "車牌", "車主", "實際泊位", "進場時間", "放行老師", "時間戳記"]);
+  }
+  return { masterSheet, checkInSheet };
+}
+
+function getParkingState(initialMasterJson) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(5000);
+  try {
+    const { masterSheet, checkInSheet } = ensureSheets();
+
+    // 若試算表尚無預載名單，自動寫入前端傳來的 27 架初始車輛
+    if (masterSheet.getLastRow() <= 1 && initialMasterJson) {
+      const initArr = JSON.parse(initialMasterJson);
+      const rows = initArr.map(v => [
+        v.id, v.org, v.name, v.rawPlate, v.cleanPlate, v.role, v.zone, v.isHistory ? "YES" : "NO", v.note || ""
+      ]);
+      if (rows.length > 0) {
+        masterSheet.getRange(2, 1, rows.length, 9).setValues(rows);
+      }
+    }
+
+    const masterList = [];
+    if (masterSheet.getLastRow() > 1) {
+      const mData = masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, 9).getValues();
+      mData.forEach(r => {
+        if (!r[0]) return;
+        masterList.push({
+          id: String(r[0]),
+          org: String(r[1]),
+          name: String(r[2]),
+          rawPlate: String(r[3]),
+          cleanPlate: String(r[4]),
+          role: String(r[5]),
+          zone: String(r[6]),
+          isHistory: String(r[7]) === "YES",
+          note: String(r[8] || "")
+        });
+      });
+    }
+
+    const checkInMap = {};
+    if (checkInSheet.getLastRow() > 1) {
+      const cData = checkInSheet.getRange(2, 1, checkInSheet.getLastRow() - 1, 6).getValues();
+      cData.forEach(r => {
+        if (!r[0]) return;
+        checkInMap[String(r[0])] = {
+          id: String(r[0]),
+          plate: String(r[1]),
+          owner: String(r[2]),
+          zone: String(r[3]),
+          time: String(r[4]),
+          by: String(r[5])
+        };
+      });
+    }
+
+    return { ok: true, masterList, checkInMap };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleClientAction(payloadStr) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const payload = JSON.parse(payloadStr);
+    const { masterSheet, checkInSheet } = ensureSheets();
+
+    if (payload.action === "resetCheckIns") {
+      if (checkInSheet.getLastRow() > 1) {
+        checkInSheet.deleteRows(2, checkInSheet.getLastRow() - 1);
+      }
+      return getParkingState(null);
+    }
+
+    if (payload.vehicle) {
+      const v = payload.vehicle;
+      let foundRow = -1;
+      if (masterSheet.getLastRow() > 1) {
+        const ids = masterSheet.getRange(2, 1, masterSheet.getLastRow() - 1, 1).getValues();
+        for (let i = 0; i < ids.length; i++) {
+          if (String(ids[i][0]) === String(v.id)) {
+            foundRow = i + 2;
+            break;
+          }
+        }
+      }
+      const rowValues = [
+        v.id, v.org, v.name, v.rawPlate, v.cleanPlate, v.role, v.zone, v.isHistory ? "YES" : "NO", v.note || ""
+      ];
+      if (foundRow > 0) {
+        masterSheet.getRange(foundRow, 1, 1, 9).setValues([rowValues]);
+      } else {
+        masterSheet.appendRow(rowValues);
+      }
+    }
+
+    if (payload.checkIn) {
+      const c = payload.checkIn;
+      checkInSheet.appendRow([c.id, c.plate, c.owner, c.zone, c.time, c.by, new Date()]);
+    }
+
+    return getParkingState(null);
+  } finally {
+    lock.releaseLock();
+  }
+}
